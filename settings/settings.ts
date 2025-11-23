@@ -9,6 +9,9 @@ export interface FolderTagPattern {
 	folder: string;
 	tag: string;
 	pattern: string;
+	property?: string;
+	property_value?: string;
+	date_property?: string;
 }
 
 export interface ExcludedFolder {
@@ -28,7 +31,7 @@ export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
 	trigger_auto_manual: 'Automatic',
 	use_regex_to_check_for_tags: false,
 	statusBar_trigger_indicator: true,
-	folder_tag_pattern: [{ folder: '', tag: '', pattern: '' }],
+	folder_tag_pattern: [{ folder: '', tag: '', pattern: '', property: '', property_value: '', date_property: '' }],
 	use_regex_to_check_for_excluded_folder: false,
 	excluded_folder: [{ folder: '' }],
 };
@@ -130,19 +133,26 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 
 		const ruleDesc = document.createDocumentFragment();
 		ruleDesc.append(
-			'1. Set the destination folder.',
+			'1. Set the destination folder. Use moment.js tokens like ',
+			descEl.createEl('strong', { text: '{{YYYY}}/{{MM}}' }),
+			' for date-based paths.',
 			descEl.createEl('br'),
-			'2. Set a tag or title that matches the note you want to move. ',
-			descEl.createEl('strong', { text: 'You can set either the tag or the title. ' }),
+			'2. Set a tag, title pattern, or property that matches the note you want to move. ',
+			descEl.createEl('strong', { text: 'You can set either tag, pattern, or property.' }),
 			descEl.createEl('br'),
 			'3. The rules are checked in order from the top. The notes will be moved to the folder with the ',
 			descEl.createEl('strong', { text: 'first matching rule.' }),
+			descEl.createEl('br'),
 			descEl.createEl('br'),
 			'Tag: Be sure to add a',
 			descEl.createEl('strong', { text: ' # ' }),
 			'at the beginning.',
 			descEl.createEl('br'),
 			'Title: Tested by JavaScript regular expressions.',
+			descEl.createEl('br'),
+			'Property: Match frontmatter property values (e.g., category: work). Property value supports regex.',
+			descEl.createEl('br'),
+			'Date Property: Use with {{tokens}} to format folder path from a frontmatter date property.',
 			descEl.createEl('br'),
 			descEl.createEl('br'),
 			'Notice:',
@@ -167,6 +177,9 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 							folder: '',
 							tag: '',
 							pattern: '',
+							property: '',
+							property_value: '',
+							date_property: '',
 						});
 						await this.plugin.saveSettings();
 						this.display();
@@ -201,6 +214,10 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 								this.display();
 								return new Notice(`You can set either the tag or the title.`);
 							}
+							if (this.plugin.settings.folder_tag_pattern[index].property) {
+								this.display();
+								return new Notice(`You can set either tag, pattern, or property.`);
+							}
 							if (newTag && checkArr(settingTag, newTag)) {
 								new Notice('This tag is already used.');
 								return;
@@ -222,6 +239,10 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 								this.display();
 								return new Notice(`You can set either the tag or the title.`);
 							}
+							if (this.plugin.settings.folder_tag_pattern[index].property) {
+								this.display();
+								return new Notice(`You can set either tag, pattern, or property.`);
+							}
 
 							if (newPattern && checkArr(settingPattern, newPattern)) {
 								new Notice('This pattern is already used.');
@@ -232,9 +253,44 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 							await this.plugin.saveSettings();
 						});
 				})
+
+				.addSearch((cb) => {
+					cb.setPlaceholder('Property')
+						.setValue(folder_tag_pattern.property || '')
+						.onChange(async (newProperty) => {
+							if (this.plugin.settings.folder_tag_pattern[index].tag) {
+								this.display();
+								return new Notice(`You can set either tag, pattern, or property.`);
+							}
+							if (this.plugin.settings.folder_tag_pattern[index].pattern) {
+								this.display();
+								return new Notice(`You can set either tag, pattern, or property.`);
+							}
+							this.plugin.settings.folder_tag_pattern[index].property = newProperty.trim();
+							await this.plugin.saveSettings();
+						});
+				})
+
+				.addSearch((cb) => {
+					cb.setPlaceholder('Property value (regex)')
+						.setValue(folder_tag_pattern.property_value || '')
+						.onChange(async (newValue) => {
+							this.plugin.settings.folder_tag_pattern[index].property_value = newValue.trim();
+							await this.plugin.saveSettings();
+						});
+				})
+
+				.addSearch((cb) => {
+					cb.setPlaceholder('Date property')
+						.setValue(folder_tag_pattern.date_property || '')
+						.onChange(async (newDateProp) => {
+							this.plugin.settings.folder_tag_pattern[index].date_property = newDateProp.trim();
+							await this.plugin.saveSettings();
+						});
+				})
 				.addExtraButton((cb) => {
 					cb.setIcon('up-chevron-glyph')
-						.setTooltip('Move up')
+					.setTooltip('Move up')
 						.onClick(async () => {
 							arrayMove(this.plugin.settings.folder_tag_pattern, index, index - 1);
 							await this.plugin.saveSettings();

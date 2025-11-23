@@ -10,6 +10,21 @@ export const isFmDisable = (fileCache: CachedMetadata) => {
 	}
 };
 
+// Create folder if it doesn't exist
+export const createFolderIfNotExists = async (app: App, folderPath: string): Promise<void> => {
+	const normalizedPath = normalizePath(folderPath);
+	const folder = app.vault.getAbstractFileByPath(normalizedPath);
+
+	if (!folder) {
+		try {
+			await app.vault.createFolder(normalizedPath);
+			console.log(`[Auto Note Mover] Created folder "${normalizedPath}".`);
+		} catch (e) {
+			console.error(`[Auto Note Mover] Error creating folder "${normalizedPath}": ${e}`);
+		}
+	}
+};
+
 const folderOrFile = (app: App, path: string) => {
 	const F = app.vault.getAbstractFileByPath(path);
 	if (F instanceof TFile) {
@@ -28,12 +43,9 @@ const isTFExists = (app: App, path: string, F: typeof TFile | typeof TFolder) =>
 };
 
 export const fileMove = async (app: App, settingFolder: string, fileFullName: string, file: TFile) => {
-	// Does the destination folder exist?
-	if (!isTFExists(app, settingFolder, TFolder)) {
-		console.error(`[Auto Note Mover] The destination folder "${settingFolder}" does not exist.`);
-		new Notice(`[Auto Note Mover]\n"Error: The destination folder\n"${settingFolder}"\ndoes not exist.`);
-		return;
-	}
+	// Create folder if it doesn't exist
+	await createFolderIfNotExists(app, settingFolder);
+
 	// Does the file with the same name exist in the destination folder?
 	const newPath = normalizePath(settingFolder + '/' + fileFullName);
 	if (isTFExists(app, newPath, TFile) && newPath !== file.path) {
