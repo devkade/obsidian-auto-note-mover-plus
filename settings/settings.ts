@@ -1,17 +1,40 @@
 import AutoNoteMover from 'main';
-import { App, Notice, PluginSettingTab, Setting, ButtonComponent } from 'obsidian';
+import { App, PluginSettingTab, Setting, ButtonComponent } from 'obsidian';
 
 import { FolderSuggest } from 'suggests/file-suggest';
 import { TagSuggest } from 'suggests/tag-suggest';
 import { arrayMove } from 'utils/Utils';
 
-export interface FolderTagPattern {
+export type MatchMode = 'ALL' | 'ANY';
+
+export type ConditionType = 'tag' | 'title' | 'property' | 'date';
+
+export type DateSource = 'frontmatter' | 'metadata';
+export type MetadataField = 'ctime' | 'mtime';
+
+export interface RuleCondition {
+	type: ConditionType;
+	/**
+	 * Raw user value.
+	 * - tag: tag string (regex respected if global toggle enabled)
+	 * - title: regex pattern string
+	 * - property: `key` or `key=pattern`
+	 * - date (frontmatter): key name containing the date value
+	 */
+	value: string;
+	/**
+	 * Date-specific metadata
+	 */
+	dateSource?: DateSource;
+	metadataField?: MetadataField;
+}
+
+export interface FolderTagRule {
 	folder: string;
-	tag: string;
-	pattern: string;
-	property?: string;
-	property_value?: string;
+	match: MatchMode;
+	conditions: RuleCondition[];
 	date_property?: string;
+	collapsed?: boolean;
 }
 
 export interface ExcludedFolder {
@@ -22,7 +45,7 @@ export interface AutoNoteMoverSettings {
 	trigger_auto_manual: string;
 	use_regex_to_check_for_tags: boolean;
 	statusBar_trigger_indicator: boolean;
-	folder_tag_pattern: Array<FolderTagPattern>;
+	folder_tag_pattern: Array<FolderTagRule>;
 	use_regex_to_check_for_excluded_folder: boolean;
 	excluded_folder: Array<ExcludedFolder>;
 }
@@ -31,7 +54,7 @@ export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
 	trigger_auto_manual: 'Automatic',
 	use_regex_to_check_for_tags: false,
 	statusBar_trigger_indicator: true,
-	folder_tag_pattern: [{ folder: '', tag: '', pattern: '', property: '', property_value: '', date_property: '' }],
+	folder_tag_pattern: [{ folder: '', match: 'ALL', conditions: [], date_property: '', collapsed: false }],
 	use_regex_to_check_for_excluded_folder: false,
 	excluded_folder: [{ folder: '' }],
 };
@@ -133,38 +156,39 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 
 		const ruleDesc = document.createDocumentFragment();
 		ruleDesc.append(
-			'1. Set the destination folder. Use moment.js tokens like ',
+			'1) Destination folder: supports moment.js tokens like ',
 			descEl.createEl('strong', { text: '{{YYYY}}/{{MM}}' }),
-			' for date-based paths.',
+			'.',
 			descEl.createEl('br'),
-			'2. Set a tag, title pattern, or property that matches the note you want to move. ',
-			descEl.createEl('strong', { text: 'You can set either tag, pattern, or property.' }),
+			'2) Add one or more conditions (Tag / Title regex / Property / Date). Combine them with ',
+			descEl.createEl('strong', { text: 'Match if ALL / ANY' }),
+			'.',
 			descEl.createEl('br'),
-			'3. The rules are checked in order from the top. The notes will be moved to the folder with the ',
-			descEl.createEl('strong', { text: 'first matching rule.' }),
-			descEl.createEl('br'),
-			descEl.createEl('br'),
-			'Tag: Be sure to add a',
-			descEl.createEl('strong', { text: ' # ' }),
-			'at the beginning.',
-			descEl.createEl('br'),
-			'Title: Tested by JavaScript regular expressions.',
-			descEl.createEl('br'),
-			'Property: Match frontmatter property values (e.g., category: work). Property value supports regex.',
-			descEl.createEl('br'),
-			'Date Property: Use with {{tokens}} to format folder path from a frontmatter date property.',
+			'3) Rules are processed top-to-bottom. First match wins.',
 			descEl.createEl('br'),
 			descEl.createEl('br'),
-			'Notice:',
+			'Tag: include the leading # (regex honored if enabled above).',
 			descEl.createEl('br'),
-			'1. Attached files will not be moved, but they will still appear in the note.',
+			'Title: JavaScript regex, e.g., ',
+			descEl.createEl('strong', { text: 'draft$' }),
+			'.',
 			descEl.createEl('br'),
-			'2. Auto Note Mover will not move notes that have "',
+			'Property: single field. Use ',
+			descEl.createEl('strong', { text: 'key' }),
+			' to require existence, or ',
+			descEl.createEl('strong', { text: 'key=pattern' }),
+			' to match a value/regex.',
+			descEl.createEl('br'),
+			'Date: choose source (Frontmatter key or file metadata ctime/mtime). Frontmatter keys must parse as dates; metadata uses the file timestamps. When folder path has {{tokens}}, that date is formatted with moment.js.',
+			descEl.createEl('br'),
+			'If the date is missing or cannot be parsed, the folder path is used as literal text (tokens stay as {{...}}).',
+			descEl.createEl('br'),
+			descEl.createEl('br'),
+			'Notice: attachments stay put; frontmatter "',
 			descEl.createEl('strong', { text: 'AutoNoteMover: disable' }),
-			'" in the frontmatter.'
+			'" skips movement.'
 		);
 		new Setting(this.containerEl)
-
 			.setName('Add new rule')
 			.setDesc(ruleDesc)
 			.addButton((button: ButtonComponent) => {
@@ -175,147 +199,228 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 					.onClick(async () => {
 						this.plugin.settings.folder_tag_pattern.push({
 							folder: '',
-							tag: '',
-							pattern: '',
-							property: '',
-							property_value: '',
+							match: 'ALL',
+							conditions: [],
 							date_property: '',
+							collapsed: false,
 						});
 						await this.plugin.saveSettings();
 						this.display();
 					});
 			});
 
-		this.plugin.settings.folder_tag_pattern.forEach((folder_tag_pattern, index) => {
-			const settings = this.plugin.settings.folder_tag_pattern;
-			const settingTag = settings.map((e) => e['tag']);
-			const settingPattern = settings.map((e) => e['pattern']);
-			const checkArr = (arr: string[], val: string) => {
-				return arr.some((arrVal) => val === arrVal);
+		this.plugin.settings.folder_tag_pattern.forEach((rule, index) => {
+			// Ensure at least one condition exists if empty
+			if (rule.conditions.length === 0) {
+				rule.conditions.push({ type: 'tag', value: '' });
+			}
+
+			const renderConditionsList = (listEl: HTMLElement) => {
+				listEl.empty();
+				rule.conditions.forEach((cond, condIndex) => {
+					const row = listEl.createDiv({ cls: 'anm-condition-row' });
+
+					// Type Select
+					const typeSelect = row.createEl('select');
+					['tag', 'title', 'property', 'date'].forEach((opt) => {
+						const o = typeSelect.createEl('option');
+						o.value = opt;
+						o.text = opt.charAt(0).toUpperCase() + opt.slice(1);
+						o.selected = cond.type === opt;
+					});
+
+					// Date source controls (created once, toggled per type)
+					const dateSourceWrap = row.createDiv({ cls: 'anm-date-source-wrap' });
+					const dateSourceSelect = dateSourceWrap.createEl('select');
+					['frontmatter', 'metadata'].forEach((opt) => {
+						const o = dateSourceSelect.createEl('option');
+						o.value = opt;
+						o.text = opt === 'frontmatter' ? 'Frontmatter' : 'Metadata';
+						o.selected = (cond.dateSource || 'frontmatter') === opt;
+					});
+
+				const metadataSelect = dateSourceWrap.createEl('select');
+				metadataSelect.addClass('anm-metadata-select');
+					['ctime', 'mtime'].forEach((opt) => {
+						const o = metadataSelect.createEl('option');
+						o.value = opt;
+						o.text = opt === 'ctime' ? 'Created time' : 'Modified time';
+						o.selected = (cond.metadataField || 'ctime') === opt;
+					});
+
+					// Value Input
+					const input = row.createEl('input');
+					input.type = 'text';
+					input.value = cond.value;
+					if (cond.type !== 'date') new TagSuggest(this.app, input);
+
+					const updateInputState = () => {
+						const source = cond.dateSource || 'frontmatter';
+						if (cond.type === 'date') {
+							input.placeholder = 'Frontmatter key (e.g., date)';
+							dateSourceWrap.style.display = 'flex';
+							const metaMode = source === 'metadata';
+							dateSourceWrap.toggleClass('anm-flex-grow', metaMode);
+							input.style.display = metaMode ? 'none' : '';
+							metadataSelect.style.display = metaMode ? '' : 'none';
+							metadataSelect.toggleAttribute('disabled', !metaMode);
+						} else {
+							input.placeholder = 'Tag / regex / key=pattern';
+							input.removeAttribute('disabled');
+							dateSourceWrap.style.display = 'none';
+							metadataSelect.style.display = 'none';
+						}
+					};
+
+					const persistDateDefaults = () => {
+						if (cond.type === 'date') {
+							cond.dateSource = cond.dateSource || 'frontmatter';
+							cond.metadataField = cond.metadataField || 'ctime';
+						}
+					};
+
+					typeSelect.onchange = async () => {
+						cond.type = typeSelect.value as any;
+						persistDateDefaults();
+						updateInputState();
+						await this.plugin.saveSettings();
+					};
+
+					dateSourceSelect.onchange = async () => {
+						cond.dateSource = dateSourceSelect.value as any;
+						if (cond.dateSource === 'metadata') {
+							cond.value = '';
+							input.value = '';
+						}
+						updateInputState();
+						await this.plugin.saveSettings();
+					};
+
+					metadataSelect.onchange = async () => {
+						cond.metadataField = metadataSelect.value as any;
+						await this.plugin.saveSettings();
+					};
+
+					input.onchange = async () => {
+						cond.value = input.value;
+						await this.plugin.saveSettings();
+					};
+
+					persistDateDefaults();
+					updateInputState();
+
+					// Delete Button
+					new ButtonComponent(row)
+						.setIcon('cross')
+						.setTooltip('Delete condition')
+						.onClick(async () => {
+							rule.conditions.splice(condIndex, 1);
+							if (rule.conditions.length === 0) {
+								rule.conditions.push({ type: 'tag', value: '' });
+							}
+							await this.plugin.saveSettings();
+							renderConditionsList(listEl);
+						});
+				});
 			};
 
-			const s = new Setting(this.containerEl)
+			// Create Card Container
+			const card = this.containerEl.createDiv({ cls: 'anm-rule-card' });
+
+			// --- Header: Folder, Date, Match Mode, Actions ---
+			const header = card.createDiv({ cls: 'anm-card-header' });
+			const headerMain = header.createDiv({ cls: 'anm-card-header-main' });
+			const actions = header.createDiv({ cls: 'anm-card-actions' });
+			// Collapse toggle (left top)
+			const toggleBtn = new ButtonComponent(headerMain.createDiv({ cls: 'anm-collapse-btn' }))
+				.setIcon(rule.collapsed ? 'chevron-right' : 'chevron-down')
+				.setTooltip('Collapse / expand');
+
+			toggleBtn.onClick(async () => {
+				rule.collapsed = !rule.collapsed;
+				await this.plugin.saveSettings();
+				body.toggleClass('anm-collapsed', rule.collapsed);
+				toggleBtn.setIcon(rule.collapsed ? 'chevron-right' : 'chevron-down');
+			});
+
+			// Folder Input
+			const folderSetting = new Setting(headerMain)
 				.addSearch((cb) => {
 					new FolderSuggest(this.app, cb.inputEl);
 					cb.setPlaceholder('Folder')
-						.setValue(folder_tag_pattern.folder)
+						.setValue(rule.folder)
 						.onChange(async (newFolder) => {
 							this.plugin.settings.folder_tag_pattern[index].folder = newFolder.trim();
 							await this.plugin.saveSettings();
 						});
-				})
+				});
+			folderSetting.settingEl.addClass('anm-flex-grow');
+			folderSetting.settingEl.addClass('anm-folder-setting');
+			folderSetting.infoEl.remove();
 
-				.addSearch((cb) => {
-					new TagSuggest(this.app, cb.inputEl);
-					cb.setPlaceholder('Tag')
-						.setValue(folder_tag_pattern.tag)
-						.onChange(async (newTag) => {
-							if (this.plugin.settings.folder_tag_pattern[index].pattern) {
-								this.display();
-								return new Notice(`You can set either the tag or the title.`);
-							}
-							if (this.plugin.settings.folder_tag_pattern[index].property) {
-								this.display();
-								return new Notice(`You can set either tag, pattern, or property.`);
-							}
-							if (newTag && checkArr(settingTag, newTag)) {
-								new Notice('This tag is already used.');
-								return;
-							}
-							if (!this.plugin.settings.use_regex_to_check_for_tags) {
-								this.plugin.settings.folder_tag_pattern[index].tag = newTag.trim();
-							} else if (this.plugin.settings.use_regex_to_check_for_tags) {
-								this.plugin.settings.folder_tag_pattern[index].tag = newTag;
-							}
+			// Match Mode
+			const matchSetting = new Setting(headerMain)
+				.addDropdown((drop) => {
+					drop
+						.addOption('ALL', 'Match if ALL')
+						.addOption('ANY', 'Match if ANY')
+						.setValue(rule.match || 'ALL')
+						.onChange(async (val: string) => {
+							this.plugin.settings.folder_tag_pattern[index].match = val === 'ANY' ? 'ANY' : 'ALL';
 							await this.plugin.saveSettings();
-						});
-				})
-
-				.addSearch((cb) => {
-					cb.setPlaceholder('Title by regex')
-						.setValue(folder_tag_pattern.pattern)
-						.onChange(async (newPattern) => {
-							if (this.plugin.settings.folder_tag_pattern[index].tag) {
-								this.display();
-								return new Notice(`You can set either the tag or the title.`);
-							}
-							if (this.plugin.settings.folder_tag_pattern[index].property) {
-								this.display();
-								return new Notice(`You can set either tag, pattern, or property.`);
-							}
-
-							if (newPattern && checkArr(settingPattern, newPattern)) {
-								new Notice('This pattern is already used.');
-								return;
-							}
-
-							this.plugin.settings.folder_tag_pattern[index].pattern = newPattern;
-							await this.plugin.saveSettings();
-						});
-				})
-
-				.addSearch((cb) => {
-					cb.setPlaceholder('Property')
-						.setValue(folder_tag_pattern.property || '')
-						.onChange(async (newProperty) => {
-							if (this.plugin.settings.folder_tag_pattern[index].tag) {
-								this.display();
-								return new Notice(`You can set either tag, pattern, or property.`);
-							}
-							if (this.plugin.settings.folder_tag_pattern[index].pattern) {
-								this.display();
-								return new Notice(`You can set either tag, pattern, or property.`);
-							}
-							this.plugin.settings.folder_tag_pattern[index].property = newProperty.trim();
-							await this.plugin.saveSettings();
-						});
-				})
-
-				.addSearch((cb) => {
-					cb.setPlaceholder('Property value (regex)')
-						.setValue(folder_tag_pattern.property_value || '')
-						.onChange(async (newValue) => {
-							this.plugin.settings.folder_tag_pattern[index].property_value = newValue.trim();
-							await this.plugin.saveSettings();
-						});
-				})
-
-				.addSearch((cb) => {
-					cb.setPlaceholder('Date property')
-						.setValue(folder_tag_pattern.date_property || '')
-						.onChange(async (newDateProp) => {
-							this.plugin.settings.folder_tag_pattern[index].date_property = newDateProp.trim();
-							await this.plugin.saveSettings();
-						});
-				})
-				.addExtraButton((cb) => {
-					cb.setIcon('up-chevron-glyph')
-					.setTooltip('Move up')
-						.onClick(async () => {
-							arrayMove(this.plugin.settings.folder_tag_pattern, index, index - 1);
-							await this.plugin.saveSettings();
-							this.display();
-						});
-				})
-				.addExtraButton((cb) => {
-					cb.setIcon('down-chevron-glyph')
-						.setTooltip('Move down')
-						.onClick(async () => {
-							arrayMove(this.plugin.settings.folder_tag_pattern, index, index + 1);
-							await this.plugin.saveSettings();
-							this.display();
-						});
-				})
-				.addExtraButton((cb) => {
-					cb.setIcon('cross')
-						.setTooltip('Delete')
-						.onClick(async () => {
-							this.plugin.settings.folder_tag_pattern.splice(index, 1);
-							await this.plugin.saveSettings();
-							this.display();
 						});
 				});
-			s.infoEl.remove();
+			matchSetting.infoEl.remove();
+
+			// Actions (Up, Down, Delete)
+			new ButtonComponent(actions)
+				.setIcon('up-chevron-glyph')
+				.setTooltip('Move up')
+				.onClick(async () => {
+					arrayMove(this.plugin.settings.folder_tag_pattern, index, index - 1);
+					await this.plugin.saveSettings();
+					this.display();
+				});
+			new ButtonComponent(actions)
+				.setIcon('down-chevron-glyph')
+				.setTooltip('Move down')
+				.onClick(async () => {
+					arrayMove(this.plugin.settings.folder_tag_pattern, index, index + 1);
+					await this.plugin.saveSettings();
+					this.display();
+				});
+			new ButtonComponent(actions)
+				.setIcon('cross')
+				.setTooltip('Delete')
+				.onClick(async () => {
+					this.plugin.settings.folder_tag_pattern.splice(index, 1);
+					await this.plugin.saveSettings();
+					this.display();
+				});
+
+			// --- Body (collapsible) ---
+			const body = card.createDiv({ cls: 'anm-card-body' });
+			if (rule.collapsed) {
+				body.addClass('anm-collapsed');
+			}
+
+
+			// --- Divider ---
+			body.createDiv({ cls: 'anm-card-divider' });
+
+			// --- Conditions List ---
+			const conditionsList = body.createDiv({ cls: 'anm-card-conditions' });
+			renderConditionsList(conditionsList);
+
+			// --- Add Button ---
+			const addBtnContainer = body.createDiv({ cls: 'anm-add-btn-container' });
+			new ButtonComponent(addBtnContainer)
+				.setButtonText('+ Add condition')
+				.onClick(async () => {
+					rule.conditions.push({ type: 'tag', value: '' });
+					await this.plugin.saveSettings();
+					renderConditionsList(conditionsList);
+				});
 		});
 
 		const useRegexToCheckForExcludedFolder = document.createDocumentFragment();

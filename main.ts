@@ -1,6 +1,8 @@
-import { MarkdownView, Plugin, TFile, getAllTags, Notice, TAbstractFile, normalizePath, parseFrontMatterEntry, CachedMetadata } from 'obsidian';
+import { MarkdownView, Plugin, TFile, getAllTags, Notice, TAbstractFile, normalizePath } from 'obsidian';
 import { DEFAULT_SETTINGS, AutoNoteMoverSettings, AutoNoteMoverSettingTab } from 'settings/settings';
-import { fileMove, getTriggerIndicator, isFmDisable, createFolderIfNotExists } from 'utils/Utils';
+import { fileMove, getTriggerIndicator, isFmDisable } from 'utils/Utils';
+import { isRuleMatched } from 'utils/ruleMatching';
+import { processFolderPath } from 'utils/pathProcessing';
 
 export default class AutoNoteMover extends Plugin {
 	settings: AutoNoteMoverSettings;
@@ -10,43 +12,7 @@ export default class AutoNoteMover extends Plugin {
 		const folderTagPattern = this.settings.folder_tag_pattern;
 		const excludedFolder = this.settings.excluded_folder;
 
-		const processFolderPath = (folderPath: string, fileCache: CachedMetadata, dateProperty?: string): string => {
-			// Detect tokens using regex
-			const tokenPattern = /\{\{(.+?)\}\}/g;
-			const hasTokens = tokenPattern.test(folderPath);
 
-			// Return literal path if no tokens found
-			if (!hasTokens) {
-				return folderPath;
-			}
-
-			// Return literal path if tokens found but no date_property specified
-			if (!dateProperty) {
-				return folderPath;
-			}
-
-			// Read date value from frontmatter
-			const dateValue = parseFrontMatterEntry(fileCache?.frontmatter, dateProperty);
-			if (dateValue === undefined || dateValue === null) {
-				console.warn(`[Auto Note Mover] Date property "${dateProperty}" not found in frontmatter. Using literal path.`);
-				return folderPath;
-			}
-
-			// Parse date with window.moment
-			const momentDate = (window as any).moment(dateValue);
-			if (!momentDate.isValid()) {
-				console.warn(`[Auto Note Mover] Invalid date value "${dateValue}" for property "${dateProperty}". Using literal path.`);
-				return folderPath;
-			}
-
-			// Replace tokens using moment formatting
-			tokenPattern.lastIndex = 0; // Reset regex
-			const processedPath = folderPath.replace(tokenPattern, (match, token) => {
-				return momentDate.format(token);
-			});
-
-			return processedPath;
-		};
 
 		const fileCheck = (file: TAbstractFile, oldPath?: string, caller?: string) => {
 			if (this.settings.trigger_auto_manual !== 'Automatic' && caller !== 'cmd') {
@@ -77,6 +43,8 @@ export default class AutoNoteMover extends Plugin {
 			}
 
 			const fileCache = this.app.metadataCache.getFileCache(file);
+			// Metadata can be undefined just after creation; wait for cache to resolve.
+			if (!fileCache) return;
 			// Disable AutoNoteMover when "AutoNoteMover: disable" is present in the frontmatter.
 			if (isFmDisable(fileCache)) {
 				return;
@@ -85,57 +53,23 @@ export default class AutoNoteMover extends Plugin {
 			const fileName = file.basename;
 			const fileFullName = file.basename + '.' + file.extension;
 			const settingsLength = folderTagPattern.length;
-			const cacheTag = getAllTags(fileCache);
+			const cacheTag = getAllTags(fileCache) || [];
 
-			// checker
 			for (let i = 0; i < settingsLength; i++) {
-				const settingFolder = folderTagPattern[i].folder;
-				const settingTag = folderTagPattern[i].tag;
-				const settingPattern = folderTagPattern[i].pattern;
-				const settingProperty = folderTagPattern[i].property;
-				const settingPropertyValue = folderTagPattern[i].property_value;
-				const settingDateProperty = folderTagPattern[i].date_property;
-				// Tag check
-				if (!settingPattern && !settingProperty) {
-					if (!this.settings.use_regex_to_check_for_tags) {
-						if (cacheTag.find((e) => e === settingTag)) {
-							const processedFolder = processFolderPath(settingFolder, fileCache, settingDateProperty);
-							fileMove(this.app, processedFolder, fileFullName, file);
-							break;
-						}
-					} else if (this.settings.use_regex_to_check_for_tags) {
-						const regex = new RegExp(settingTag);
-						if (cacheTag.find((e) => regex.test(e))) {
-							const processedFolder = processFolderPath(settingFolder, fileCache, settingDateProperty);
-							fileMove(this.app, processedFolder, fileFullName, file);
-							break;
-						}
-					}
-					// Title check
-				} else if (!settingTag && !settingProperty) {
-					const regex = new RegExp(settingPattern);
-					const isMatch = regex.test(fileName);
-					if (isMatch) {
-						const processedFolder = processFolderPath(settingFolder, fileCache, settingDateProperty);
-						fileMove(this.app, processedFolder, fileFullName, file);
-						break;
-					}
-					// Property check
-				} else if (!settingTag && !settingPattern && settingProperty && settingPropertyValue) {
-					const propertyValue = parseFrontMatterEntry(fileCache?.frontmatter, settingProperty);
-					if (propertyValue !== undefined && propertyValue !== null) {
-						try {
-							const regex = new RegExp(settingPropertyValue);
-							const propertyValueStr = String(propertyValue);
-							if (regex.test(propertyValueStr)) {
-								const processedFolder = processFolderPath(settingFolder, fileCache, settingDateProperty);
-								fileMove(this.app, processedFolder, fileFullName, file);
-								break;
-							}
-						} catch (e) {
-							console.error(`[Auto Note Mover] Invalid regex pattern in property_value: "${settingPropertyValue}"`);
-						}
-					}
+				const rule = folderTagPattern[i];
+
+				const matched = isRuleMatched(rule, {
+					fileCache,
+					fileName,
+					tags: cacheTag,
+					useRegexForTags: this.settings.use_regex_to_check_for_tags,
+					file,
+				});
+
+				if (matched) {
+					const processedFolder = processFolderPath(rule.folder, fileCache, file, rule);
+					fileMove(this.app, processedFolder, fileFullName, file);
+					break;
 				}
 			}
 		};
@@ -204,7 +138,47 @@ export default class AutoNoteMover extends Plugin {
 	onunload() {}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const loaded = await this.loadData();
+		const merged = Object.assign({}, DEFAULT_SETTINGS, loaded);
+		if (merged.folder_tag_pattern) {
+			merged.folder_tag_pattern = merged.folder_tag_pattern.map((rule: any) => {
+				// Already in new shape
+				if (rule.conditions) {
+					const normalizedConds = rule.conditions || [];
+					const hasDateCond = normalizedConds.some((c: any) => c?.type === 'date');
+					if (!hasDateCond && rule.date_property) {
+						normalizedConds.push({ type: 'date', value: rule.date_property, dateSource: 'frontmatter', metadataField: 'ctime' });
+					}
+					return {
+						folder: rule.folder || '',
+						match: rule.match === 'ANY' ? 'ANY' : 'ALL',
+						conditions: normalizedConds,
+						date_property: rule.date_property || '',
+					};
+				}
+
+				// Migrate legacy fields
+				const conditions: any[] = [];
+				if (rule.tag) conditions.push({ type: 'tag', value: rule.tag });
+				if (rule.pattern) conditions.push({ type: 'title', value: rule.pattern });
+				if (rule.property || rule.property_value) {
+					const pv = rule.property_value ? `${rule.property}=${rule.property_value}` : rule.property;
+					if (pv) conditions.push({ type: 'property', value: pv });
+				}
+				if (rule.date_property) {
+					conditions.push({ type: 'date', value: rule.date_property, dateSource: 'frontmatter', metadataField: 'ctime' });
+				}
+
+				return {
+					folder: rule.folder || '',
+					match: 'ALL',
+					conditions,
+					date_property: rule.date_property || '',
+				};
+			});
+		}
+
+		this.settings = merged;
 	}
 
 	async saveSettings() {

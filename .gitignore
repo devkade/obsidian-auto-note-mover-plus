@@ -1,20 +1,31 @@
-# vscode
-.vscode 
-
-# Intellij
-*.iml
+# Editor
+.vscode
 .idea
+*.iml
 
-# npm
+# Dependencies
 node_modules
 package-lock.json
 
-# Don't include the compiled main.js file in the repo.
-# They should be uploaded to GitHub releases instead.
+# Build output
 main.js
-
-# Exclude sourcemaps
 *.map
 
-# obsidian
+# Obsidian
 data.json
+
+# macOS
+.DS_Store
+
+# AI Development Tools (Keep local only)
+.bmad
+.agent
+.claude
+.gemini
+bmad*
+bmm*
+CLAUDE.md
+
+# Internal Documentation
+docs/sprint-artifacts
+RELEASE_INFO.md

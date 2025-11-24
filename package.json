@@ -1,11 +1,12 @@
 {
-	"name": "auto-note-mover",
-	"version": "1.2.0",
-	"description": "Auto Note Mover will automatically move the active notes to their respective folders according to the rules.",
+	"name": "auto-note-mover-plus",
+	"version": "1.0.0",
+	"description": "Auto Note Mover Plus moves notes automatically based on flexible rules (Tag, Title, Property, Date) with ALL/ANY matching.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"test": "node --test tests/*.test.js"
 	},
 	"keywords": [],
 	"author": "",
@@ -18,7 +19,7 @@
 		"esbuild": "0.13.12",
 		"obsidian": "^0.12.17",
 		"tslib": "2.3.1",
-		"typescript": "4.4.4"
+		"typescript": "^5.4.5"
 	},
 	"dependencies": {
 		"@popperjs/core": "^2.11.2"
