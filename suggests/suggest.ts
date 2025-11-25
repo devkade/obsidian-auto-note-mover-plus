@@ -100,6 +100,16 @@ class Suggest<T> {
 	}
 }
 
+interface InternalAppInterface {
+	dom: {
+		appContainerEl: HTMLElement;
+	};
+	keymap: {
+		pushScope(scope: Scope): void;
+		popScope(scope: Scope): void;
+	};
+}
+
 export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 	protected app: App;
 	protected inputEl: HTMLInputElement;
@@ -134,14 +144,14 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 
 		if (suggestions.length > 0) {
 			this.suggest.setSuggestions(suggestions);
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			this.open((<any>this.app).dom.appContainerEl, this.inputEl);
+			// Access internal app properties for suggestion container and keymap
+			this.open((this.app as unknown as InternalAppInterface).dom.appContainerEl, this.inputEl);
 		}
 	}
 
 	open(container: HTMLElement, inputEl: HTMLElement): void {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(<any>this.app).keymap.pushScope(this.scope);
+		// Access internal keymap to manage scope
+		(this.app as unknown as InternalAppInterface).keymap.pushScope(this.scope);
 
 		container.appendChild(this.suggestEl);
 		this.popper = createPopper(inputEl, this.suggestEl, {
@@ -160,7 +170,7 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 							return;
 						}
 						state.styles.popper.width = targetWidth;
-						instance.update();
+						void instance.update();
 					},
 					phase: 'beforeWrite',
 					requires: ['computeStyles'],
@@ -170,8 +180,8 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 	}
 
 	close(): void {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(<any>this.app).keymap.popScope(this.scope);
+		// Access internal keymap to remove scope
+		(this.app as unknown as InternalAppInterface).keymap.popScope(this.scope);
 
 		this.suggest.setSuggestions([]);
 		this.popper.destroy();

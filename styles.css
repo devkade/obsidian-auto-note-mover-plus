@@ -122,3 +122,11 @@
 .anm-w-full {
     width: 100%;
 }
+
+.anm-hidden {
+    display: none;
+}
+
+.anm-visible {
+    display: flex;
+}

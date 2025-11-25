@@ -1,5 +1,5 @@
 import { MarkdownView, Plugin, TFile, getAllTags, Notice, TAbstractFile, normalizePath } from 'obsidian';
-import { DEFAULT_SETTINGS, AutoNoteMoverSettings, AutoNoteMoverSettingTab } from 'settings/settings';
+import { DEFAULT_SETTINGS, AutoNoteMoverSettings, AutoNoteMoverSettingTab, FolderTagRule, RuleCondition } from 'settings/settings';
 import { fileMove, getTriggerIndicator, isFmDisable } from 'utils/Utils';
 import { isRuleMatched } from 'utils/ruleMatching';
 import { processFolderPath } from 'utils/pathProcessing';
@@ -7,7 +7,11 @@ import { processFolderPath } from 'utils/pathProcessing';
 export default class AutoNoteMover extends Plugin {
 	settings: AutoNoteMoverSettings;
 
-	async onload() {
+	onload(): void {
+		void this.initialize();
+	}
+
+	async initialize(): Promise<void> {
 		await this.loadSettings();
 		const folderTagPattern = this.settings.folder_tag_pattern;
 		const excludedFolder = this.settings.excluded_folder;
@@ -117,15 +121,15 @@ export default class AutoNoteMover extends Plugin {
 
 		this.addCommand({
 			id: 'Toggle-Auto-Manual',
-			name: 'Toggle Auto-Manual',
+			name: 'Toggle auto-manual',
 			callback: () => {
 				if (this.settings.trigger_auto_manual === 'Automatic') {
 					this.settings.trigger_auto_manual = 'Manual';
-					this.saveData(this.settings);
+					void this.saveData(this.settings);
 					new Notice('[Auto Note Mover]\nTrigger is Manual.');
 				} else if (this.settings.trigger_auto_manual === 'Manual') {
 					this.settings.trigger_auto_manual = 'Automatic';
-					this.saveData(this.settings);
+					void this.saveData(this.settings);
 					new Notice('[Auto Note Mover]\nTrigger is Automatic.');
 				}
 				setIndicator();
@@ -137,15 +141,15 @@ export default class AutoNoteMover extends Plugin {
 
 	onunload() {}
 
-	async loadSettings() {
+	async loadSettings(): Promise<void> {
 		const loaded = await this.loadData();
 		const merged = Object.assign({}, DEFAULT_SETTINGS, loaded);
 		if (merged.folder_tag_pattern) {
-			merged.folder_tag_pattern = merged.folder_tag_pattern.map((rule: any) => {
+			merged.folder_tag_pattern = merged.folder_tag_pattern.map((rule: FolderTagRule) => {
 				// Already in new shape
 				if (rule.conditions) {
 					const normalizedConds = rule.conditions || [];
-					const hasDateCond = normalizedConds.some((c: any) => c?.type === 'date');
+					const hasDateCond = normalizedConds.some((c: RuleCondition) => c?.type === 'date');
 					if (!hasDateCond && rule.date_property) {
 						normalizedConds.push({ type: 'date', value: rule.date_property, dateSource: 'frontmatter', metadataField: 'ctime' });
 					}
@@ -158,11 +162,12 @@ export default class AutoNoteMover extends Plugin {
 				}
 
 				// Migrate legacy fields
-				const conditions: any[] = [];
-				if (rule.tag) conditions.push({ type: 'tag', value: rule.tag });
-				if (rule.pattern) conditions.push({ type: 'title', value: rule.pattern });
-				if (rule.property || rule.property_value) {
-					const pv = rule.property_value ? `${rule.property}=${rule.property_value}` : rule.property;
+				const conditions: RuleCondition[] = [];
+				const legacyRule = rule as FolderTagRule & { tag?: string; pattern?: string; property?: string; property_value?: string };
+				if (legacyRule.tag) conditions.push({ type: 'tag', value: legacyRule.tag });
+				if (legacyRule.pattern) conditions.push({ type: 'title', value: legacyRule.pattern });
+				if (legacyRule.property || legacyRule.property_value) {
+					const pv = legacyRule.property_value ? `${legacyRule.property}=${legacyRule.property_value}` : legacyRule.property;
 					if (pv) conditions.push({ type: 'property', value: pv });
 				}
 				if (rule.date_property) {
@@ -171,7 +176,7 @@ export default class AutoNoteMover extends Plugin {
 
 				return {
 					folder: rule.folder || '',
-					match: 'ALL',
+					match: 'ALL' as const,
 					conditions,
 					date_property: rule.date_property || '',
 				};

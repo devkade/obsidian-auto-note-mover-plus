@@ -16,9 +16,8 @@ export const createFolderIfNotExists = async (app: App, folderPath: string): Pro
 	if (!folder) {
 		try {
 			await app.vault.createFolder(normalizedPath);
-			console.log(`[Auto Note Mover] Created folder "${normalizedPath}".`);
-		} catch (e) {
-			console.error(`[Auto Note Mover] Error creating folder "${normalizedPath}": ${e}`);
+		} catch (error) {
+			console.error(`[Auto Note Mover] Error creating folder "${normalizedPath}":`, error);
 		}
 	}
 };
@@ -47,9 +46,6 @@ export const fileMove = async (app: App, settingFolder: string, fileFullName: st
 	// Does the file with the same name exist in the destination folder?
 	const newPath = normalizePath(settingFolder + '/' + fileFullName);
 	if (isTFExists(app, newPath, TFile) && newPath !== file.path) {
-		console.error(
-			`[Auto Note Mover] Error: A file with the same name "${fileFullName}" exists at the destination folder.`
-		);
 		new Notice(
 			`[Auto Note Mover]\nError: A file with the same name\n"${fileFullName}"\nexists at the destination folder.`
 		);
@@ -61,7 +57,6 @@ export const fileMove = async (app: App, settingFolder: string, fileFullName: st
 	}
 	// Move file
 	await app.fileManager.renameFile(file, newPath);
-	console.log(`[Auto Note Mover] Moved the note "${fileFullName}" to the "${settingFolder}".`);
 	new Notice(`[Auto Note Mover]\nMoved the note "${fileFullName}"\nto the "${settingFolder}".`);
 };
 
