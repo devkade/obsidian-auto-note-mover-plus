@@ -107,7 +107,7 @@ export default class AutoNoteMover extends Plugin {
 
 		this.addCommand({
 			id: 'Move-the-note',
-			name: 'Move the note',
+			name: 'Move note',
 			checkCallback: (checking: boolean) => {
 				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (markdownView) {
@@ -121,7 +121,7 @@ export default class AutoNoteMover extends Plugin {
 
 		this.addCommand({
 			id: 'Toggle-Auto-Manual',
-			name: 'Toggle auto-manual',
+			name: 'Toggle trigger',
 			callback: () => {
 				if (this.settings.trigger_auto_manual === 'Automatic') {
 					this.settings.trigger_auto_manual = 'Manual';

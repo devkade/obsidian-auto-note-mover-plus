@@ -127,7 +127,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.trigger_auto_manual)
 					.onChange((value: string) => {
 						this.plugin.settings.trigger_auto_manual = value;
-						this.plugin.saveData(this.plugin.settings);
+						void this.plugin.saveData(this.plugin.settings);
 						this.display();
 					})
 			);
@@ -339,7 +339,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			// Collapse toggle (left top)
 			const toggleBtn = new ButtonComponent(headerMain.createDiv({ cls: 'anm-collapse-btn' }))
 				.setIcon(rule.collapsed ? 'chevron-right' : 'chevron-down')
-				.setTooltip('Collapse / expand');
+				.setTooltip('Collapse/expand');
 
 			toggleBtn.onClick(async () => {
 				rule.collapsed = !rule.collapsed;
@@ -367,8 +367,8 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			const matchSetting = new Setting(headerMain)
 				.addDropdown((drop) => {
 					drop
-						.addOption('ALL', 'Match if ALL')
-						.addOption('ANY', 'Match if ANY')
+						.addOption('ALL', 'Match if all')
+						.addOption('ANY', 'Match if any')
 						.setValue(rule.match || 'ALL')
 						.onChange(async (val: string) => {
 							this.plugin.settings.folder_tag_pattern[index].match = val === 'ANY' ? 'ANY' : 'ALL';
@@ -456,7 +456,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			.setDesc(excludedFolderDesc)
 			.addButton((button: ButtonComponent) => {
 				button
-					.setTooltip('Add Excluded Folders')
+					.setTooltip('Add excluded folders')
 					.setButtonText('+')
 					.setCta()
 					.onClick(async () => {
