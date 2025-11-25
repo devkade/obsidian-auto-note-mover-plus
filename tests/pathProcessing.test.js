@@ -80,3 +80,59 @@ test('supports legacy date_property in rule root', () => {
 	const result = processFolderPath(folder, fileCache, mockFile, rule);
 	assert.equal(result, 'Legacy/2025');
 });
+
+test('handles multiple tokens in path', () => {
+	const folder = '{{YYYY}}/{{MM}}/{{DD}}/Notes';
+	const rule = {
+		conditions: [{ type: 'date', value: 'date', dateSource: 'frontmatter' }],
+	};
+	const result = processFolderPath(folder, fileCache, mockFile, rule);
+	assert.equal(result, '2025/01/01/Notes');
+});
+
+test('handles all supported date tokens', () => {
+	const folder = '{{YYYY}}-{{MM}}-{{DD}}';
+	const rule = {
+		conditions: [{ type: 'date', value: 'date', dateSource: 'frontmatter' }],
+	};
+	const result = processFolderPath(folder, fileCache, mockFile, rule);
+	assert.equal(result, '2025-01-01');
+});
+
+test('handles empty frontmatter', () => {
+	const emptyCache = { frontmatter: {} };
+	const folder = 'Archive/{{YYYY}}';
+	const rule = {
+		conditions: [{ type: 'date', value: 'date', dateSource: 'frontmatter' }],
+	};
+	const result = processFolderPath(folder, emptyCache, mockFile, rule);
+	assert.equal(result, folder);
+});
+
+test('handles null frontmatter', () => {
+	const nullCache = { frontmatter: null };
+	const folder = 'Archive/{{YYYY}}';
+	const rule = {
+		conditions: [{ type: 'date', value: 'date', dateSource: 'frontmatter' }],
+	};
+	const result = processFolderPath(folder, nullCache, mockFile, rule);
+	assert.equal(result, folder);
+});
+
+test('handles path with trailing slash', () => {
+	const folder = 'MyFolder/{{YYYY}}/';
+	const rule = {
+		conditions: [{ type: 'date', value: 'date', dateSource: 'frontmatter' }],
+	};
+	const result = processFolderPath(folder, fileCache, mockFile, rule);
+	assert.equal(result, 'MyFolder/2025/');
+});
+
+test('handles path with special characters', () => {
+	const folder = 'My-Folder_2025/Notes (Archive)/{{YYYY}}';
+	const rule = {
+		conditions: [{ type: 'date', value: 'date', dateSource: 'frontmatter' }],
+	};
+	const result = processFolderPath(folder, fileCache, mockFile, rule);
+	assert.equal(result, 'My-Folder_2025/Notes (Archive)/2025');
+});

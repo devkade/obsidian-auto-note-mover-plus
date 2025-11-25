@@ -76,9 +76,11 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 	}
 
 	add_auto_note_mover_setting(): void {
-		this.containerEl.createEl('h2', { text: 'Auto Note Mover' });
-
 		const descEl = document.createDocumentFragment();
+
+		new Setting(this.containerEl)
+			.setName('Auto Note Mover')
+			.setHeading();
 
 		new Setting(this.containerEl).setDesc(
 			'Auto Note Mover will automatically move the active notes to their respective folders according to the rules.'
@@ -258,17 +260,20 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 						const source = cond.dateSource || 'frontmatter';
 						if (cond.type === 'date') {
 							input.placeholder = 'Frontmatter key (e.g., date)';
-							dateSourceWrap.style.display = 'flex';
+							dateSourceWrap.removeClass('anm-hidden');
+							dateSourceWrap.addClass('anm-visible');
 							const metaMode = source === 'metadata';
 							dateSourceWrap.toggleClass('anm-flex-grow', metaMode);
-							input.style.display = metaMode ? 'none' : '';
-							metadataSelect.style.display = metaMode ? '' : 'none';
+							input.toggleClass('anm-hidden', metaMode);
+							metadataSelect.toggleClass('anm-hidden', !metaMode);
 							metadataSelect.toggleAttribute('disabled', !metaMode);
 						} else {
 							input.placeholder = 'Tag / regex / key=pattern';
+							input.removeClass('anm-hidden');
 							input.removeAttribute('disabled');
-							dateSourceWrap.style.display = 'none';
-							metadataSelect.style.display = 'none';
+							dateSourceWrap.removeClass('anm-visible');
+							dateSourceWrap.addClass('anm-hidden');
+							metadataSelect.addClass('anm-hidden');
 						}
 					};
 
@@ -280,14 +285,14 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 					};
 
 					typeSelect.onchange = async () => {
-						cond.type = typeSelect.value as any;
+						cond.type = typeSelect.value as ConditionType;
 						persistDateDefaults();
 						updateInputState();
 						await this.plugin.saveSettings();
 					};
 
 					dateSourceSelect.onchange = async () => {
-						cond.dateSource = dateSourceSelect.value as any;
+						cond.dateSource = dateSourceSelect.value as DateSource;
 						if (cond.dateSource === 'metadata') {
 							cond.value = '';
 							input.value = '';
@@ -297,7 +302,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 					};
 
 					metadataSelect.onchange = async () => {
-						cond.metadataField = metadataSelect.value as any;
+						cond.metadataField = metadataSelect.value as MetadataField;
 						await this.plugin.saveSettings();
 					};
 
@@ -447,7 +452,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 		);
 		new Setting(this.containerEl)
 
-			.setName('Add Excluded Folder')
+			.setName('Add excluded folder')
 			.setDesc(excludedFolderDesc)
 			.addButton((button: ButtonComponent) => {
 				button
@@ -514,7 +519,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			'Desktop only.'
 		);
 		new Setting(this.containerEl)
-			.setName('Status Bar Trigger Indicator')
+			.setName('Status bar trigger indicator')
 			.setDesc(statusBarTriggerIndicatorDesc)
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.statusBar_trigger_indicator).onChange(async (value) => {
