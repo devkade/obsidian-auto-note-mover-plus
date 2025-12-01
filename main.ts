@@ -13,12 +13,10 @@ export default class AutoNoteMover extends Plugin {
 
 	async initialize(): Promise<void> {
 		await this.loadSettings();
-		const folderTagPattern = this.settings.folder_tag_pattern;
-		const excludedFolder = this.settings.excluded_folder;
-
-
 
 		const fileCheck = (file: TAbstractFile, oldPath?: string, caller?: string) => {
+			const folderTagPattern = this.settings.folder_tag_pattern;
+			const excludedFolder = this.settings.excluded_folder;
 			if (this.settings.trigger_auto_manual !== 'Automatic' && caller !== 'cmd') {
 				return;
 			}

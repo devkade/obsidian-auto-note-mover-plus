@@ -9,8 +9,11 @@
 import { AbstractInputSuggest, App, TAbstractFile, TFolder } from 'obsidian';
 
 export class FolderSuggest extends AbstractInputSuggest<TFolder> {
+	private textInputEl: HTMLInputElement;
+
 	constructor(app: App, inputEl: HTMLInputElement) {
 		super(app, inputEl);
+		this.textInputEl = inputEl;
 	}
 
 	getSuggestions(inputStr: string): TFolder[] {
@@ -32,7 +35,8 @@ export class FolderSuggest extends AbstractInputSuggest<TFolder> {
 	}
 
 	selectSuggestion(file: TFolder): void {
-		this.setValue(file.path);
+		this.textInputEl.value = file.path;
+		this.textInputEl.dispatchEvent(new Event('input', { bubbles: true }));
 		this.close();
 	}
 }
