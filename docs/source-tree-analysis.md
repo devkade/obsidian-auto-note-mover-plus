@@ -2,7 +2,7 @@
 
 **Project:** Auto Note Mover (Obsidian Plugin)
 **Type:** Extension (Monolith)
-**Generated:** 2025-11-23
+**Generated:** 2025-12-01
 
 ## Directory Structure
 
@@ -26,72 +26,80 @@ obsidian-auto-note-mover/
 │   └── Utils.ts              # File operations and frontmatter parsing
 │
 ├── docs/                      # Documentation
-│   ├── project-scan-report.json  # Workflow state tracking
-│   ├── bmm-workflow-status.yaml  # BMM workflow status
 │   └── sprint-artifacts/         # Sprint planning artifacts
 │
 ├── LICENSE                    # MIT License
 ├── README.md                  # Project documentation
-├── CLAUDE.md                  # Development guide for Claude Code
-├── versions.json              # Version compatibility information
-└── bmad-config.json          # BMad configuration
+└── versions.json              # Version compatibility information
 ```
 
 ## Critical Directories
 
 ### `/` (Root)
+
 **Purpose:** Main plugin code and configuration
 **Key Files:**
-- `main.ts` - Plugin entry point with event handling logic
-- `manifest.json` - Obsidian plugin metadata
-- Entry point for build: `esbuild.config.mjs`
+
+-   `main.ts` - Plugin entry point with event handling logic
+-   `manifest.json` - Obsidian plugin metadata
+-   Entry point for build: `esbuild.config.mjs`
 
 ### `/settings`
+
 **Purpose:** Settings UI and configuration management
 **Pattern:** Settings tab integration with Obsidian
 **Key Responsibilities:**
-- Rule configuration interface
-- Folder-tag pattern management
-- Settings persistence
+
+-   Rule configuration interface
+-   Folder-tag pattern management
+-   Settings persistence
 
 ### `/suggests`
+
 **Purpose:** UI autocomplete components
 **Pattern:** Popper.js-based suggestion modals
 **Key Responsibilities:**
-- Folder path suggestions
-- Tag autocomplete
-- User input assistance
+
+-   Folder path suggestions
+-   Tag autocomplete
+-   User input assistance
 
 ### `/utils`
+
 **Purpose:** Shared utility functions
 **Key Responsibilities:**
-- File movement operations
-- Frontmatter parsing
-- Path validation
+
+-   File movement operations
+-   Frontmatter parsing
+-   Path validation
 
 ## Entry Points
 
 **Main Entry:** `main.ts`
-- Extends Obsidian `Plugin` class
-- Registers file event handlers
-- Implements rule matching and file moving logic
+
+-   Extends Obsidian `Plugin` class
+-   Registers file event handlers
+-   Implements rule matching and file moving logic
 
 **Build Entry:** `esbuild.config.mjs`
-- Bundles TypeScript to single `main.js`
-- Configured for CommonJS output
-- Externals: Obsidian API, Electron, CodeMirror
+
+-   Bundles TypeScript to single `main.js`
+-   Configured for CommonJS output
+-   Externals: Obsidian API, Electron, CodeMirror
 
 ## Integration Points
 
 **Obsidian API Integration:**
-- File system events (create, rename, metadata change)
-- Vault file operations
-- Settings tab registration
-- Frontmatter access
+
+-   File system events (create, rename, metadata change)
+-   Vault file operations
+-   Settings tab registration
+-   Frontmatter access
 
 **External Dependencies:**
-- `@popperjs/core` - UI positioning for suggestions
-- `obsidian` - Obsidian plugin API (external)
+
+-   `@popperjs/core` - UI positioning for suggestions
+-   `obsidian` - Obsidian plugin API (external)
 
 ## Build Output
 

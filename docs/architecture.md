@@ -3,7 +3,7 @@
 **Project:** Auto Note Mover Plus
 **Type:** Obsidian Plugin (Extension)
 **Architecture Pattern:** Event-Driven Plugin Architecture
-**Last Updated:** 2025-11-25
+**Last Updated:** 2025-12-01
 
 ## Executive Summary
 
@@ -264,8 +264,6 @@ See [Development Guide](./development-guide.md) for complete development instruc
 -   Manual testing in Obsidian vault
 
 ## Deployment Architecture
-
-See [Deployment Guide](./deployment-guide.md) for release process.
 
 **Distribution:**
 

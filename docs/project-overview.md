@@ -5,7 +5,7 @@
 **Version:** 1.0.0
 **Author:** devkade
 **License:** MIT
-**Last Updated:** 2025-11-25
+**Last Updated:** 2025-12-01
 
 ## Executive Summary
 
@@ -161,7 +161,6 @@ See [Development Guide](./development-guide.md) for complete instructions.
 -   **[Architecture](./architecture.md)** - Detailed technical architecture
 -   **[Source Tree Analysis](./source-tree-analysis.md)** - Directory structure
 -   **[Development Guide](./development-guide.md)** - Development setup and workflow
--   **[Deployment Guide](./deployment-guide.md)** - Release process
 
 ### External Resources
 

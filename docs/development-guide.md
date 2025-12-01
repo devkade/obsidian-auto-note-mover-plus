@@ -1,7 +1,7 @@
 # Development Guide
 
 **Project:** Auto Note Mover Plus (Obsidian Plugin)
-**Last Updated:** 2025-11-25
+**Last Updated:** 2025-12-01
 
 ## Prerequisites
 

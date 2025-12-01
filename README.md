@@ -45,14 +45,32 @@ Organize notes into date-based subfolders (e.g., `2023/10`).
     -   Example Folder Path: `Journal/{{YYYY}}/{{MM}}`
     -   If the date is `2023-11-25`, note moves to `Journal/2023/11`.
 
+### Examples
+
+For comprehensive configuration examples, including tag-based, title-based, and date-based rules, please refer to [docs/usage-examples.md](docs/usage-examples.md).
+
 ## Installation
 
 ### Manual Installation
 
-1.  Download the `main.js`, `manifest.json`, and `styles.css` from the latest Release.
-2.  Create a folder `auto-note-mover-plus` in your vault's `.obsidian/plugins/` directory.
-3.  Place the files there.
-4.  Reload Obsidian and enable the plugin.
+1. Download `main.js`, `manifest.json`, `styles.css` from the [latest Release](https://github.com/devkade/obsidian-auto-note-mover/releases).
+
+2. Copy files to your vault's plugin folder:
+
+```bash
+# Navigate to your Obsidian vault
+cd /path/to/your/vault
+
+# Create plugin directory
+mkdir -p .obsidian/plugins/auto-note-mover-plus
+
+# Copy downloaded files
+cp ~/Downloads/main.js .obsidian/plugins/auto-note-mover-plus/
+cp ~/Downloads/manifest.json .obsidian/plugins/auto-note-mover-plus/
+cp ~/Downloads/styles.css .obsidian/plugins/auto-note-mover-plus/
+```
+
+3. Reload Obsidian (Cmd/Ctrl + R) and enable "Auto Note Mover Plus" in Settings → Community plugins.
 
 ## Attribution
 
