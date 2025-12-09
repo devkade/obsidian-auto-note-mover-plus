@@ -1,7 +1,7 @@
 {
 	"id": "auto-note-mover-plus",
 	"name": "Auto Note Mover Plus",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"minAppVersion": "0.12.0",
 	"description": "Automatically move notes to folders based on rules. Forked from Auto Note Mover.",
 	"author": "devkade",
