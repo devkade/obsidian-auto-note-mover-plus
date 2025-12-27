@@ -90,7 +90,11 @@ export default class AutoNoteMover extends Plugin {
 		}
 
 		this.app.workspace.onLayoutReady(() => {
-			this.registerEvent(this.app.vault.on('create', (file) => fileCheck(file)));
+			this.registerEvent(this.app.vault.on('create', (file) => {
+				if (this.settings.trigger_on_file_creation) {
+					fileCheck(file);
+				}
+			}));
 			this.registerEvent(this.app.metadataCache.on('changed', (file) => fileCheck(file)));
 			this.registerEvent(this.app.vault.on('rename', (file, oldPath) => fileCheck(file, oldPath)));
 		});

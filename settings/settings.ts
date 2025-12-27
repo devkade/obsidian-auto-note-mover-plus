@@ -43,6 +43,7 @@ export interface ExcludedFolder {
 
 export interface AutoNoteMoverSettings {
 	trigger_auto_manual: string;
+	trigger_on_file_creation: boolean;
 	use_regex_to_check_for_tags: boolean;
 	statusBar_trigger_indicator: boolean;
 	folder_tag_pattern: Array<FolderTagRule>;
@@ -52,6 +53,7 @@ export interface AutoNoteMoverSettings {
 
 export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
 	trigger_auto_manual: 'Automatic',
+	trigger_on_file_creation: false,
 	use_regex_to_check_for_tags: false,
 	statusBar_trigger_indicator: true,
 	folder_tag_pattern: [{ folder: '', match: 'ALL', conditions: [], date_property: '', collapsed: false }],
@@ -131,6 +133,22 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 						this.display();
 					})
 			);
+
+		const triggerOnFileCreationDesc = document.createDocumentFragment();
+		triggerOnFileCreationDesc.append(
+			'If disabled, notes will not be moved when created.',
+			descEl.createEl('br'),
+			'Only rename and metadata changes will trigger the move.'
+		);
+		new Setting(this.containerEl)
+			.setName('Trigger on file creation')
+			.setDesc(triggerOnFileCreationDesc)
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.trigger_on_file_creation).onChange(async (value) => {
+					this.plugin.settings.trigger_on_file_creation = value;
+					await this.plugin.saveSettings();
+				});
+			});
 
 		const useRegexToCheckForTags = document.createDocumentFragment();
 		useRegexToCheckForTags.append(
