@@ -67,6 +67,35 @@ export default class AutoNoteMover extends Plugin {
 			for (let i = 0; i < settingsLength; i++) {
 				const rule = folderTagPattern[i];
 
+				// Source Folders check (rule-level restriction)
+				const sourceFolders = rule.sourceFolders;
+				if (sourceFolders && sourceFolders.length > 0) {
+					const fileParentPath = file.parent.path;
+					const includeSubfolders = rule.sourceIncludeSubfolders;
+					let isInSourceFolder = false;
+
+					for (const sourceFolder of sourceFolders) {
+						if (!sourceFolder) continue;
+						const normalizedSource = normalizePath(sourceFolder);
+
+						if (includeSubfolders) {
+							if (fileParentPath === normalizedSource || fileParentPath.startsWith(normalizedSource + '/')) {
+								isInSourceFolder = true;
+								break;
+							}
+						} else {
+							if (fileParentPath === normalizedSource) {
+								isInSourceFolder = true;
+								break;
+							}
+						}
+					}
+
+					if (!isInSourceFolder) {
+						continue;
+					}
+				}
+
 				const matched = isRuleMatched(rule, {
 					fileCache,
 					fileName,
@@ -189,7 +218,7 @@ export default class AutoNoteMover extends Plugin {
 	async loadSettings(): Promise<void> {
 		const loaded = await this.loadData();
 		const merged = Object.assign({}, DEFAULT_SETTINGS, loaded);
-		if (merged.folder_tag_pattern) {
+			if (merged.folder_tag_pattern) {
 			merged.folder_tag_pattern = merged.folder_tag_pattern.map((rule: FolderTagRule) => {
 				// Already in new shape
 				if (rule.conditions) {
@@ -203,6 +232,8 @@ export default class AutoNoteMover extends Plugin {
 						match: rule.match === 'ANY' ? 'ANY' : 'ALL',
 						conditions: normalizedConds,
 						date_property: rule.date_property || '',
+						sourceFolders: rule.sourceFolders || [],
+						sourceIncludeSubfolders: rule.sourceIncludeSubfolders || false,
 					};
 				}
 
@@ -224,6 +255,8 @@ export default class AutoNoteMover extends Plugin {
 					match: 'ALL' as const,
 					conditions,
 					date_property: rule.date_property || '',
+					sourceFolders: [],
+					sourceIncludeSubfolders: false,
 				};
 			});
 		}

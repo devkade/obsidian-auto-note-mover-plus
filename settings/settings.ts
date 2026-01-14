@@ -35,6 +35,8 @@ export interface FolderTagRule {
 	conditions: RuleCondition[];
 	date_property?: string;
 	collapsed?: boolean;
+	sourceFolders?: string[];
+	sourceIncludeSubfolders?: boolean;
 }
 
 export interface ExcludedFolder {
@@ -56,7 +58,7 @@ export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
 	trigger_on_file_creation: false,
 	use_regex_to_check_for_tags: false,
 	statusBar_trigger_indicator: true,
-	folder_tag_pattern: [{ folder: '', match: 'ALL', conditions: [], date_property: '', collapsed: false }],
+	folder_tag_pattern: [{ folder: '', match: 'ALL', conditions: [], date_property: '', collapsed: false, sourceFolders: [], sourceIncludeSubfolders: false }],
 	use_regex_to_check_for_excluded_folder: false,
 	excluded_folder: [{ folder: '' }],
 };
@@ -223,6 +225,8 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 							conditions: [],
 							date_property: '',
 							collapsed: false,
+							sourceFolders: [],
+							sourceIncludeSubfolders: false,
 						});
 						await this.plugin.saveSettings();
 						this.display();
@@ -431,6 +435,79 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 				body.addClass('anm-collapsed');
 			}
 
+
+			// --- Divider ---
+			body.createDiv({ cls: 'anm-card-divider' });
+
+			// --- Source Folders Section ---
+			const sourceFoldersDesc = document.createDocumentFragment();
+			sourceFoldersDesc.append(
+				'Only apply this rule to notes in these folders.',
+				descEl.createEl('br'),
+				'If empty, rule applies to all folders.'
+			);
+			new Setting(body)
+				.setName('Source folders')
+				.setDesc(sourceFoldersDesc)
+				.addButton((button: ButtonComponent) => {
+					button
+						.setTooltip('Add source folder')
+						.setButtonText('+')
+						.onClick(async () => {
+							if (!rule.sourceFolders) {
+								rule.sourceFolders = [];
+							}
+							rule.sourceFolders.push('');
+							await this.plugin.saveSettings();
+							renderSourceFoldersList(sourceFoldersList);
+						});
+				});
+
+			const sourceFoldersList = body.createDiv({ cls: 'anm-source-folders-list' });
+
+			const renderSourceFoldersList = (listEl: HTMLElement) => {
+				listEl.empty();
+				if (!rule.sourceFolders) {
+					rule.sourceFolders = [];
+				}
+				rule.sourceFolders.forEach((sourceFolder, sfIndex) => {
+					const row = listEl.createDiv({ cls: 'anm-source-folder-row' });
+
+					const searchSetting = new Setting(row)
+						.addSearch((cb) => {
+							new FolderSuggest(this.app, cb.inputEl);
+							cb.setPlaceholder('Folder')
+								.setValue(sourceFolder)
+								.onChange(async (newFolder) => {
+									rule.sourceFolders![sfIndex] = newFolder;
+									await this.plugin.saveSettings();
+								});
+						});
+					searchSetting.infoEl.remove();
+
+					new ButtonComponent(row)
+						.setIcon('cross')
+						.setTooltip('Remove')
+						.onClick(async () => {
+							rule.sourceFolders!.splice(sfIndex, 1);
+							await this.plugin.saveSettings();
+							renderSourceFoldersList(listEl);
+						});
+				});
+			};
+
+			renderSourceFoldersList(sourceFoldersList);
+
+			// --- Include Subfolders Toggle ---
+			new Setting(body)
+				.setName('Include subfolders')
+				.setDesc('Also match notes in subfolders of the source folders.')
+				.addToggle((toggle) => {
+					toggle.setValue(rule.sourceIncludeSubfolders || false).onChange(async (value) => {
+						rule.sourceIncludeSubfolders = value;
+						await this.plugin.saveSettings();
+					});
+				});
 
 			// --- Divider ---
 			body.createDiv({ cls: 'anm-card-divider' });
