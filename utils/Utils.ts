@@ -39,7 +39,7 @@ const isTFExists = (app: App, path: string, F: typeof TFile | typeof TFolder) =>
 	}
 };
 
-export const fileMove = async (app: App, settingFolder: string, fileFullName: string, file: TFile) => {
+export const fileMove = async (app: App, settingFolder: string, fileFullName: string, file: TFile, hideNotifications?: boolean) => {
 	// Create folder if it doesn't exist
 	await createFolderIfNotExists(app, settingFolder);
 
@@ -57,7 +57,10 @@ export const fileMove = async (app: App, settingFolder: string, fileFullName: st
 	}
 	// Move file
 	await app.fileManager.renameFile(file, newPath);
-	new Notice(`[Auto Note Mover]\nMoved the note "${fileFullName}"\nto the "${settingFolder}".`);
+	// Success notification is only shown when hideNotifications is false
+	if (!hideNotifications) {
+		new Notice(`[Auto Note Mover]\nMoved the note "${fileFullName}"\nto the "${settingFolder}".`);
+	}
 };
 
 export const arrayMove = <T>(array: T[], fromIndex: number, toIndex: number): void => {

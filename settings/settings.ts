@@ -51,6 +51,7 @@ export interface AutoNoteMoverSettings {
 	folder_tag_pattern: Array<FolderTagRule>;
 	use_regex_to_check_for_excluded_folder: boolean;
 	excluded_folder: Array<ExcludedFolder>;
+	hide_notifications?: boolean;
 }
 
 export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
@@ -61,6 +62,7 @@ export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
 	folder_tag_pattern: [{ folder: '', match: 'ALL', conditions: [], date_property: '', collapsed: false, sourceFolders: [], sourceIncludeSubfolders: false }],
 	use_regex_to_check_for_excluded_folder: false,
 	excluded_folder: [{ folder: '' }],
+	hide_notifications: false,
 };
 
 export class AutoNoteMoverSettingTab extends PluginSettingTab {
@@ -148,6 +150,20 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.trigger_on_file_creation).onChange(async (value) => {
 					this.plugin.settings.trigger_on_file_creation = value;
+					await this.plugin.saveSettings();
+				});
+			});
+
+		const hideNotificationsDesc = document.createDocumentFragment();
+		hideNotificationsDesc.append(
+			'Hide success notifications when notes are moved.'
+		);
+		new Setting(this.containerEl)
+			.setName('Hide notifications')
+			.setDesc(hideNotificationsDesc)
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.hide_notifications || false).onChange(async (value) => {
+					this.plugin.settings.hide_notifications = value;
 					await this.plugin.saveSettings();
 				});
 			});
