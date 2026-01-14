@@ -107,7 +107,7 @@ export default class AutoNoteMover extends Plugin {
 				if (matched) {
 					const processedFolder = processFolderPath(rule.folder, fileCache, file, rule);
 					const originalPath = file.path;
-					await fileMove(this.app, processedFolder, fileFullName, file, this.settings.hide_notifications);
+					await fileMove(this.app, processedFolder, fileFullName, file, this.settings.hide_notifications, this.settings.duplicate_file_action, caller);
 					// file.path updates after successful move
 					return file.path !== originalPath;
 				}

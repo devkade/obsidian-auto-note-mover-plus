@@ -39,13 +39,24 @@ const isTFExists = (app: App, path: string, F: typeof TFile | typeof TFolder) =>
 	}
 };
 
-export const fileMove = async (app: App, settingFolder: string, fileFullName: string, file: TFile, hideNotifications?: boolean) => {
+export const fileMove = async (app: App, settingFolder: string, fileFullName: string, file: TFile, hideNotifications?: boolean, duplicateFileAction?: 'skip' | 'merge', caller?: string) => {
 	// Create folder if it doesn't exist
 	await createFolderIfNotExists(app, settingFolder);
 
 	// Does the file with the same name exist in the destination folder?
 	const newPath = normalizePath(settingFolder + '/' + fileFullName);
 	if (isTFExists(app, newPath, TFile) && newPath !== file.path) {
+		// Handle duplicate file based on action setting
+		if (duplicateFileAction) {
+			const handled = await handleDuplicateFile(app, file, newPath, duplicateFileAction, caller || '');
+			if (handled) {
+				// Merge dialog was shown, don't show error notice
+				return;
+			}
+			// Skip or fallback, don't move
+			return;
+		}
+		// Fallback to skip if no action specified
 		new Notice(
 			`[Auto Note Mover]\nError: A file with the same name\n"${fileFullName}"\nexists at the destination folder.`
 		);
@@ -78,4 +89,56 @@ export const getTriggerIndicator = (trigger: string) => {
 	} else {
 		return `[M]`;
 	}
+};
+
+// Note Composer 플러그인이 활성화되어 있는지 확인
+export const isNoteComposerEnabled = (app: App): boolean => {
+	const appAny = app as any;
+	const plugin = appAny.internalPlugins?.getPluginById('note-composer');
+	return plugin && plugin.enabled;
+};
+
+// 중복 파일 처리 (skip 또는 merge)
+export const handleDuplicateFile = async (
+	app: App,
+	sourceFile: TFile,
+	destFilePath: string,
+	action: 'skip' | 'merge',
+	caller: string
+): Promise<boolean> => {
+	// true = 처리됨, false = 스킵됨
+	
+	if (action === 'skip') {
+		new Notice(
+			`[Auto Note Mover]\nError: A file with the same name\n"${sourceFile.name}"\nexists at the destination folder.`
+		);
+		return false;
+	}
+	
+	// Merge는 Manual 모드에서만 실행 (Automatic 모드는 skip)
+	if (caller !== 'cmd') {
+		new Notice(
+			`[Auto Note Mover]\nError: A file with the same name\n"${sourceFile.name}"\nexists at the destination folder.`
+		);
+		return false;
+	}
+	
+	if (!isNoteComposerEnabled(app)) {
+		new Notice('[Auto Note Mover] Note Composer is disabled. Falling back to skip.');
+		return false;
+	}
+	
+	// Note Composer Merge 모달 열기
+	const destFile = app.vault.getAbstractFileByPath(destFilePath);
+	if (destFile instanceof TFile) {
+		const appAny = app as any;
+		// 파일 활성화
+		await app.workspace.openLinkText(destFile.path, '');
+		// 약간 대기하여 파일 활성화 완료 대기
+		await new Promise(resolve => setTimeout(resolve, 100));
+		// Merge 명령 실행
+		appAny.commands.executeCommandById('note-composer:merge-file');
+	}
+	
+	return true;
 };

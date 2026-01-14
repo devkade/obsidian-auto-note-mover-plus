@@ -52,6 +52,7 @@ export interface AutoNoteMoverSettings {
 	use_regex_to_check_for_excluded_folder: boolean;
 	excluded_folder: Array<ExcludedFolder>;
 	hide_notifications?: boolean;
+	duplicate_file_action?: 'skip' | 'merge';
 }
 
 export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
@@ -63,6 +64,7 @@ export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
 	use_regex_to_check_for_excluded_folder: false,
 	excluded_folder: [{ folder: '' }],
 	hide_notifications: false,
+	duplicate_file_action: 'skip',
 };
 
 export class AutoNoteMoverSettingTab extends PluginSettingTab {
@@ -152,6 +154,30 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 					this.plugin.settings.trigger_on_file_creation = value;
 					await this.plugin.saveSettings();
 				});
+			});
+
+		const duplicateFileActionDesc = document.createDocumentFragment();
+		duplicateFileActionDesc.append(
+			'What to do when a file with the same name exists in the destination folder.',
+			descEl.createEl('br'),
+			descEl.createEl('strong', { text: 'Skip ' }),
+			'- Show error and do not move the file.',
+			descEl.createEl('br'),
+			descEl.createEl('strong', { text: 'Merge ' }),
+			'- Open Note Composer merge dialog (Manual mode only).'
+		);
+		new Setting(this.containerEl)
+			.setName('Duplicate file action')
+			.setDesc(duplicateFileActionDesc)
+			.addDropdown((dropdown) => {
+				dropdown
+					.addOption('skip', 'Skip (show error)')
+					.addOption('merge', 'Merge with Note Composer')
+					.setValue(this.plugin.settings.duplicate_file_action || 'skip')
+					.onChange(async (value) => {
+						this.plugin.settings.duplicate_file_action = value as 'skip' | 'merge';
+						await this.plugin.saveSettings();
+					});
 			});
 
 		const hideNotificationsDesc = document.createDocumentFragment();
