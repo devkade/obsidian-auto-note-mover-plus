@@ -96,7 +96,7 @@ export default class AutoNoteMover extends Plugin {
 					}
 				}
 
-				const matched = isRuleMatched(rule, {
+				const result = isRuleMatched(rule, {
 					fileCache,
 					fileName,
 					tags: cacheTag,
@@ -104,8 +104,14 @@ export default class AutoNoteMover extends Plugin {
 					file,
 				});
 
-				if (matched) {
-					const processedFolder = processFolderPath(rule.folder, fileCache, file, rule);
+				if (result.matched) {
+					const processedFolder = processFolderPath(
+						rule.folder,
+						fileCache,
+						file,
+						rule,
+						result.captureGroups
+					);
 					const originalPath = file.path;
 					await fileMove(this.app, processedFolder, fileFullName, file, this.settings.hide_notifications, this.settings.duplicate_file_action, caller);
 					// file.path updates after successful move

@@ -9,6 +9,11 @@ interface RuleContext {
 	file: TFile;
 }
 
+export interface MatchResult {
+	matched: boolean;
+	captureGroups?: string[];
+}
+
 const compileUserRegex = (pattern: string): RegExp | null => {
 	if (!pattern) return null;
 	try {
@@ -85,64 +90,77 @@ const coerceToMoment = (value: unknown): MomentLike | null => {
 	};
 };
 
-const evaluateCondition = (cond: RuleCondition, ctx: RuleContext): boolean => {
+const evaluateCondition = (cond: RuleCondition, ctx: RuleContext): MatchResult => {
 	const { fileCache, fileName, tags, useRegexForTags, file } = ctx;
 	switch (cond.type) {
 		case 'tag': {
-			if (!cond.value) return false;
+			if (!cond.value) return { matched: false };
 			const rawValue = cond.value.trim();
-			if (!rawValue) return false;
+			if (!rawValue) return { matched: false };
 			if (useRegexForTags) {
 				const regex = compileUserRegex(cond.value);
-				return !!regex && tags.some((t) => regex.test(t));
+				if (!regex) return { matched: false };
+
+				for (const tag of tags) {
+					const match = regex.exec(tag);
+					if (match) {
+						// Capture groups extraction (match[0] is full match, match[1+] are capture groups)
+						const captureGroups = match.slice(1).filter(g => g !== undefined);
+						return { matched: true, captureGroups };
+					}
+				}
+				return { matched: false };
 			}
+			// Non-regex mode - keep existing logic
 			const normalizedRuleWithHash = rawValue.startsWith('#') ? rawValue : `#${rawValue}`;
 			const normalizedRuleNoHash = rawValue.startsWith('#') ? rawValue.slice(1) : rawValue;
-			return tags.some((t) => {
+			const matched = tags.some((t) => {
 				const tag = (t || '').trim();
 				if (!tag) return false;
 				if (tag === rawValue || tag === normalizedRuleWithHash) return true;
 				const tagNoHash = tag.startsWith('#') ? tag.slice(1) : tag;
 				return tagNoHash === normalizedRuleNoHash;
 			});
+			return { matched };
 		}
 		case 'title': {
 			const regex = compileUserRegex(cond.value);
-			return !!regex && regex.test(fileName);
+			if (!regex) return { matched: false };
+			return { matched: regex.test(fileName) };
 		}
 		case 'property': {
 			const parsed = parsePropertyCondition(cond.value || '');
-			if (!parsed.key) return false;
+			if (!parsed.key) return { matched: false };
 			const propVal = parseFrontMatterEntry(fileCache?.frontmatter, parsed.key);
-			if (!hasValue(propVal)) return false;
-			if (!parsed.requireValue) return true;
-			if (!parsed.regex) return false;
+			if (!hasValue(propVal)) return { matched: false };
+			if (!parsed.requireValue) return { matched: true };
+			if (!parsed.regex) return { matched: false };
 			try {
-				return parsed.regex.test(String(propVal));
+				return { matched: parsed.regex.test(String(propVal)) };
 			} catch {
-				return false;
+				return { matched: false };
 			}
 		}
 		case 'date': {
 			const source = cond.dateSource || 'frontmatter';
 			if (source === 'metadata') {
 				const stat = file?.stat;
-				if (!stat) return false;
+				if (!stat) return { matched: false };
 				const ts = (cond.metadataField === 'mtime' ? stat?.mtime : stat?.ctime) ?? stat?.ctime;
-				if (!ts) return false;
+				if (!ts) return { matched: false };
 				const m = coerceToMoment(ts);
-				return !!m && m.isValid();
+				return { matched: !!m && m.isValid() };
 			}
 
 			const key = (cond.value || '').trim();
-			if (!key) return false;
+			if (!key) return { matched: false };
 			const val = parseFrontMatterEntry(fileCache?.frontmatter, key);
-			if (!hasValue(val)) return false;
+			if (!hasValue(val)) return { matched: false };
 			const m = coerceToMoment(val);
-			return !!m && m.isValid();
+			return { matched: !!m && m.isValid() };
 		}
 		default:
-			return false;
+			return { matched: false };
 	}
 };
 
@@ -164,12 +182,29 @@ const activeConditions = (conditions: RuleCondition[] = []): RuleCondition[] => 
 	});
 };
 
-export const isRuleMatched = (rule: FolderTagRule, ctx: RuleContext): boolean => {
+export const isRuleMatched = (rule: FolderTagRule, ctx: RuleContext): MatchResult => {
 	const conditions = activeConditions(rule?.conditions || []);
-	if (!conditions.length) return false;
-	const results = conditions.map((c) => evaluateCondition(c, ctx));
+	if (!conditions.length) return { matched: false };
+
+	// Collect capture groups from all conditions
+	const allCaptureGroups: string[] = [];
+
+	const results = conditions.map((c) => {
+		const result = evaluateCondition(c, ctx);
+		if (result.captureGroups) {
+			allCaptureGroups.push(...result.captureGroups);
+		}
+		return result.matched;
+	});
+
 	const mode: MatchMode = rule?.match === 'ANY' ? 'ANY' : 'ALL';
-	return mode === 'ANY' ? results.some(Boolean) : results.every(Boolean);
+	const matched = mode === 'ANY' ? results.some(Boolean) : results.every(Boolean);
+
+	return {
+		matched,
+		// Capture groups collected from all conditions
+		captureGroups: allCaptureGroups.length > 0 ? allCaptureGroups : undefined,
+	};
 };
 
 export {

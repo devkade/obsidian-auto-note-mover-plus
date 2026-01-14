@@ -46,7 +46,7 @@ describe('isRuleMatched', () => {
 				],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 
 		it('rule with only empty conditions does not match', () => {
@@ -58,7 +58,7 @@ describe('isRuleMatched', () => {
 				],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(false);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(false);
 		});
 
 		it('multiple populated conditions still match when all are true', () => {
@@ -71,7 +71,7 @@ describe('isRuleMatched', () => {
 				],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 
 		it('tag match works when user omits leading hash', () => {
@@ -83,7 +83,7 @@ describe('isRuleMatched', () => {
 				],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ tags: ['#todo'] }))).toBe(true);
+			expect(isRuleMatched(rule, makeContext({ tags: ['#todo'] })).matched).toBe(true);
 		});
 	});
 
@@ -95,7 +95,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'date', value: 'created', dateSource: 'frontmatter' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 
 		it('matches metadata mtime', () => {
@@ -105,7 +105,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'date', value: '', dateSource: 'metadata', metadataField: 'mtime' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 	});
 
@@ -120,7 +120,7 @@ describe('isRuleMatched', () => {
 				],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 
 		it('returns false when all conditions are false', () => {
@@ -133,7 +133,7 @@ describe('isRuleMatched', () => {
 				],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(false);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(false);
 		});
 
 		it('ignores empty conditions', () => {
@@ -146,7 +146,7 @@ describe('isRuleMatched', () => {
 				],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 
 		it('with only empty conditions returns false', () => {
@@ -159,7 +159,7 @@ describe('isRuleMatched', () => {
 				],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(false);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(false);
 		});
 	});
 
@@ -171,7 +171,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'property', value: 'status=done' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 
 		it('with boolean value true', () => {
@@ -187,7 +187,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'property', value: 'published=true' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ fileCache: cache, tags: [] }))).toBe(true);
+			expect(isRuleMatched(rule, makeContext({ fileCache: cache, tags: [] })).matched).toBe(true);
 		});
 
 		it('with boolean value false', () => {
@@ -203,7 +203,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'property', value: 'archived=false' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ fileCache: cache, tags: [] }))).toBe(true);
+			expect(isRuleMatched(rule, makeContext({ fileCache: cache, tags: [] })).matched).toBe(true);
 		});
 
 		it('with numeric value', () => {
@@ -219,7 +219,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'property', value: 'priority=5' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ fileCache: cache, tags: [] }))).toBe(true);
+			expect(isRuleMatched(rule, makeContext({ fileCache: cache, tags: [] })).matched).toBe(true);
 		});
 
 		it('returns false when property does not exist', () => {
@@ -229,7 +229,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'property', value: 'nonexistent=value' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(false);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(false);
 		});
 
 		it('returns false when value does not match', () => {
@@ -239,7 +239,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'property', value: 'status=todo' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(false);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(false);
 		});
 
 		it('with spaces in value', () => {
@@ -255,7 +255,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'property', value: 'category=work notes' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ fileCache: cache, tags: [] }))).toBe(true);
+			expect(isRuleMatched(rule, makeContext({ fileCache: cache, tags: [] })).matched).toBe(true);
 		});
 	});
 
@@ -267,7 +267,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'title', value: '^note-' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 
 		it('does not match when pattern fails', () => {
@@ -277,7 +277,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'title', value: '^Meeting-' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(false);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(false);
 		});
 
 		it('with case insensitive flag', () => {
@@ -287,7 +287,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'title', value: '/NOTE/i' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 
 		it('with special characters escaped', () => {
@@ -297,7 +297,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'title', value: 'note-title' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 
 		it('with word boundary', () => {
@@ -307,7 +307,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'title', value: '\\btitle\\b' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(true);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(true);
 		});
 	});
 
@@ -319,7 +319,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'tag', value: 'test.*' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ useRegexForTags: true }))).toBe(true);
+			expect(isRuleMatched(rule, makeContext({ useRegexForTags: true })).matched).toBe(true);
 		});
 
 		it('does not match when pattern fails', () => {
@@ -329,7 +329,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'tag', value: 'prod.*' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ useRegexForTags: true }))).toBe(false);
+			expect(isRuleMatched(rule, makeContext({ useRegexForTags: true })).matched).toBe(false);
 		});
 
 		it('with anchors', () => {
@@ -339,7 +339,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'tag', value: '^#testing$' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ useRegexForTags: true }))).toBe(true);
+			expect(isRuleMatched(rule, makeContext({ useRegexForTags: true })).matched).toBe(true);
 		});
 
 		it('matches multiple tags with OR pattern', () => {
@@ -350,7 +350,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'tag', value: '(project|personal)' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ tags: multiTags, useRegexForTags: true }))).toBe(true);
+			expect(isRuleMatched(rule, makeContext({ tags: multiTags, useRegexForTags: true })).matched).toBe(true);
 		});
 	});
 
@@ -362,7 +362,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'title', value: '[invalid(regex' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(false);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(false);
 		});
 
 		it('undefined fileCache does not throw error', () => {
@@ -372,7 +372,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'property', value: 'status=done' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ fileCache: undefined }))).toBe(false);
+			expect(isRuleMatched(rule, makeContext({ fileCache: undefined })).matched).toBe(false);
 		});
 
 		it('empty tags array handles edge case', () => {
@@ -382,7 +382,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'tag', value: '#testing' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ tags: [] }))).toBe(false);
+			expect(isRuleMatched(rule, makeContext({ tags: [] })).matched).toBe(false);
 		});
 
 		it('empty fileName does not throw error', () => {
@@ -392,7 +392,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'title', value: '^note' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext({ fileName: '' }))).toBe(false);
+			expect(isRuleMatched(rule, makeContext({ fileName: '' })).matched).toBe(false);
 		});
 
 		it('unknown condition type returns false', () => {
@@ -402,7 +402,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'unknown' as RuleCondition['type'], value: 'test' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(false);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(false);
 		});
 
 		it('missing match field defaults to appropriate behavior', () => {
@@ -412,7 +412,7 @@ describe('isRuleMatched', () => {
 			} as FolderTagRule;
 
 			const result = isRuleMatched(rule, makeContext());
-			expect(typeof result).toBe('boolean');
+			expect(result).toHaveProperty('matched');
 		});
 
 		it('malformed property condition without equals sign', () => {
@@ -422,7 +422,7 @@ describe('isRuleMatched', () => {
 				conditions: [{ type: 'property', value: 'invalidformat' }],
 			};
 
-			expect(isRuleMatched(rule, makeContext())).toBe(false);
+			expect(isRuleMatched(rule, makeContext()).matched).toBe(false);
 		});
 
 		it('very long condition value does not cause performance issue', () => {

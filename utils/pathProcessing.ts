@@ -6,10 +6,30 @@ interface MomentLike {
 	format: (fmt: string) => string;
 }
 
-export const processFolderPath = (folderPath: string, fileCache: CachedMetadata | null | undefined, file: TFile, rule: FolderTagRule): string => {
-	const tokenPattern = /\{\{(.+?)\}\}/g;
-	const hasTokens = tokenPattern.test(folderPath);
-	if (!hasTokens) return folderPath;
+export const processFolderPath = (
+	folderPath: string,
+	fileCache: CachedMetadata | null | undefined,
+	file: TFile,
+	rule: FolderTagRule,
+	captureGroups?: string[]
+): string => {
+	const dateTokenPattern = /\{\{(.+?)\}\}/g;
+	const captureTokenPattern = /\$(\d+)/g;
+
+	const hasCaptureTokens = captureTokenPattern.test(folderPath);
+
+	// Capture group substitution ($1, $2, etc.)
+	if (hasCaptureTokens && captureGroups && captureGroups.length > 0) {
+		folderPath = folderPath.replace(captureTokenPattern, (_, i) => {
+			const idx = parseInt(i) - 1; // Convert 1-indexed to 0-indexed
+			return captureGroups[idx] || '';
+		});
+	}
+
+	// Date token processing
+	dateTokenPattern.lastIndex = 0;
+	const hasDateTokens = dateTokenPattern.test(folderPath);
+	if (!hasDateTokens) return folderPath;
 
 	// Prefer date condition, fall back to legacy date_property
 	const dateCond = (rule?.conditions || []).find((c: RuleCondition) => c?.type === 'date');
@@ -69,6 +89,6 @@ export const processFolderPath = (folderPath: string, fileCache: CachedMetadata 
 		return folderPath;
 	}
 
-	tokenPattern.lastIndex = 0;
-	return folderPath.replace(tokenPattern, (_, token: string) => momentDate.format(token));
+	dateTokenPattern.lastIndex = 0;
+	return folderPath.replace(dateTokenPattern, (_, token: string) => momentDate.format(token));
 };
