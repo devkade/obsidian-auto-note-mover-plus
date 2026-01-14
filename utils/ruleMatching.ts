@@ -44,7 +44,11 @@ const parsePropertyCondition = (raw: string): PropertyCondition => {
 	return { key, regex: compileUserRegex(value), requireValue: true };
 };
 
-const hasValue = (val: unknown): boolean => val !== undefined && val !== null && String(val).trim() !== '';
+const hasValue = (val: unknown): boolean => {
+	if (val === undefined || val === null) return false;
+	if (typeof val === 'object') return true;
+	return String(val).trim() !== '';
+};
 
 interface MomentLike {
 	isValid: () => boolean;

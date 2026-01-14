@@ -180,8 +180,8 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			descEl.createEl('strong', { text: '{{YYYY}}/{{MM}}' }),
 			'.',
 			descEl.createEl('br'),
-			'2) Add one or more conditions (Tag / Title regex / Property / Date). Combine them with ',
-			descEl.createEl('strong', { text: 'Match if ALL / ANY' }),
+			'2) Add one or more conditions (tag / title regex / property / date). Combine them with ',
+			descEl.createEl('strong', { text: 'Match if all / any' }),
 			'.',
 			descEl.createEl('br'),
 			'3) Rules are processed top-to-bottom. First match wins.',
@@ -199,7 +199,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			descEl.createEl('strong', { text: 'key=pattern' }),
 			' to match a value/regex.',
 			descEl.createEl('br'),
-			'Date: choose source (Frontmatter key or file metadata ctime/mtime). Frontmatter keys must parse as dates; metadata uses the file timestamps. When folder path has {{tokens}}, that date is formatted with moment.js.',
+			'Date: choose source (frontmatter key or file metadata ctime/mtime). Frontmatter keys must parse as dates; metadata uses the file timestamps. When folder path has {{tokens}}, that date is formatted with moment.js.',
 			descEl.createEl('br'),
 			'If the date is missing or cannot be parsed, the folder path is used as literal text (tokens stay as {{...}}).',
 			descEl.createEl('br'),
@@ -295,12 +295,16 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 						}
 					};
 
-					const persistDateDefaults = () => {
-						if (cond.type === 'date') {
-							cond.dateSource = cond.dateSource || 'frontmatter';
+				const persistDateDefaults = () => {
+					if (cond.type === 'date') {
+						cond.dateSource = cond.dateSource || 'frontmatter';
+						if (cond.dateSource === 'metadata') {
 							cond.metadataField = cond.metadataField || 'ctime';
+						} else {
+							delete cond.metadataField;
 						}
-					};
+					}
+				};
 
 					typeSelect.onchange = async () => {
 						cond.type = typeSelect.value as ConditionType;

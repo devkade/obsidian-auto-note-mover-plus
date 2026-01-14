@@ -58,8 +58,11 @@ export const processFolderPath = (folderPath: string, fileCache: CachedMetadata 
 	}
 
 	if (!momentDate.isValid()) {
+		const dateValueStr = typeof dateValue === 'object' && dateValue !== null
+			? JSON.stringify(dateValue)
+			: String(dateValue ?? '');
 		console.warn(
-			`[Auto Note Mover] Invalid date value "${dateValue}" for ${
+			`[Auto Note Mover] Invalid date value "${dateValueStr}" for ${
 				dateSource === 'metadata' ? metadataField : `property "${frontmatterKey}"`
 			}. Using literal path.`
 		);

@@ -6,7 +6,8 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"test": "node --test tests/*.test.js"
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"keywords": [],
 	"author": "",
@@ -22,7 +23,8 @@
 		"eslint-plugin-obsidianmd": "^0.1.9",
 		"obsidian": "^1.10.3",
 		"tslib": "2.3.1",
-		"typescript": "^5.4.5"
+		"typescript": "^5.4.5",
+		"vitest": "^4.0.17"
 	},
 	"dependencies": {
 		"@popperjs/core": "^2.11.2"

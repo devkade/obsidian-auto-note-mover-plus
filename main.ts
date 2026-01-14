@@ -6,6 +6,7 @@ import { processFolderPath } from 'utils/pathProcessing';
 
 export default class AutoNoteMover extends Plugin {
 	settings: AutoNoteMoverSettings;
+	private recentlyCreatedFiles: Set<string> = new Set();
 
 	onload(): void {
 		void this.initialize();
@@ -37,9 +38,15 @@ export default class AutoNoteMover extends Plugin {
 				) {
 					return;
 				} else if (this.settings.use_regex_to_check_for_excluded_folder && excludedFolder[i].folder) {
-					const regex = new RegExp(excludedFolder[i].folder);
-					if (regex.test(file.parent.path)) {
-						return;
+					try {
+						const regex = new RegExp(excludedFolder[i].folder);
+						if (regex.test(file.parent.path)) {
+							return;
+						}
+					} catch {
+						if (file.parent.path.includes(excludedFolder[i].folder)) {
+							return;
+						}
 					}
 				}
 			}
@@ -70,7 +77,7 @@ export default class AutoNoteMover extends Plugin {
 
 				if (matched) {
 					const processedFolder = processFolderPath(rule.folder, fileCache, file, rule);
-					fileMove(this.app, processedFolder, fileFullName, file);
+					void fileMove(this.app, processedFolder, fileFullName, file);
 					break;
 				}
 			}
@@ -91,11 +98,21 @@ export default class AutoNoteMover extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			this.registerEvent(this.app.vault.on('create', (file) => {
+				if (!(file instanceof TFile)) return;
+				this.recentlyCreatedFiles.add(file.path);
+				setTimeout(() => {
+					this.recentlyCreatedFiles.delete(file.path);
+				}, 5000);
 				if (this.settings.trigger_on_file_creation) {
 					fileCheck(file);
 				}
 			}));
-			this.registerEvent(this.app.metadataCache.on('changed', (file) => fileCheck(file)));
+			this.registerEvent(this.app.metadataCache.on('changed', (file) => {
+				if (!this.settings.trigger_on_file_creation && this.recentlyCreatedFiles.has(file.path)) {
+					return;
+				}
+				fileCheck(file);
+			}));
 			this.registerEvent(this.app.vault.on('rename', (file, oldPath) => fileCheck(file, oldPath)));
 		});
 
@@ -128,11 +145,11 @@ export default class AutoNoteMover extends Plugin {
 				if (this.settings.trigger_auto_manual === 'Automatic') {
 					this.settings.trigger_auto_manual = 'Manual';
 					void this.saveData(this.settings);
-					new Notice('[Auto Note Mover]\nTrigger is Manual.');
+					new Notice('[Auto Note Mover]\nTrigger is manual.');
 				} else if (this.settings.trigger_auto_manual === 'Manual') {
 					this.settings.trigger_auto_manual = 'Automatic';
 					void this.saveData(this.settings);
-					new Notice('[Auto Note Mover]\nTrigger is Automatic.');
+					new Notice('[Auto Note Mover]\nTrigger is automatic.');
 				}
 				setIndicator();
 			},
