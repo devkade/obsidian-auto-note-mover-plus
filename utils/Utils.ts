@@ -2,9 +2,8 @@ import { App, CachedMetadata, normalizePath, Notice, parseFrontMatterEntry, TFil
 
 // Disable AutoNoteMover when "AutoNoteMover: disable" is present in the frontmatter.
 export const isFmDisable = (fileCache?: CachedMetadata | null) => {
-	// Metadata cache can be null immediately after creation; treat as not disabled until it resolves.
 	if (!fileCache || !fileCache.frontmatter) return false;
-	const fm = parseFrontMatterEntry(fileCache.frontmatter, 'AutoNoteMover');
+	const fm = parseFrontMatterEntry(fileCache.frontmatter, 'AutoNoteMover') as string | null;
 	return fm === 'disable';
 };
 
@@ -91,11 +90,25 @@ export const getTriggerIndicator = (trigger: string) => {
 	}
 };
 
-// Note Composer 플러그인이 활성화되어 있는지 확인
+interface InternalPlugin {
+	enabled: boolean;
+}
+
+interface InternalPlugins {
+	getPluginById(id: string): InternalPlugin | null;
+}
+
+interface AppWithInternals {
+	internalPlugins?: InternalPlugins;
+	commands?: {
+		executeCommandById(id: string): void;
+	};
+}
+
 export const isNoteComposerEnabled = (app: App): boolean => {
-	const appAny = app as any;
-	const plugin = appAny.internalPlugins?.getPluginById('note-composer');
-	return plugin && plugin.enabled;
+	const appInternal = app as unknown as AppWithInternals;
+	const plugin = appInternal.internalPlugins?.getPluginById('note-composer');
+	return !!(plugin && plugin.enabled);
 };
 
 // 중복 파일 처리 (skip 또는 merge)
@@ -124,20 +137,16 @@ export const handleDuplicateFile = async (
 	}
 	
 	if (!isNoteComposerEnabled(app)) {
-		new Notice('[Auto Note Mover] Note Composer is disabled. Falling back to skip.');
+		new Notice('Auto note mover: note composer is disabled. Falling back to skip.');
 		return false;
 	}
 	
-	// Note Composer Merge 모달 열기
 	const destFile = app.vault.getAbstractFileByPath(destFilePath);
 	if (destFile instanceof TFile) {
-		const appAny = app as any;
-		// 파일 활성화
+		const appInternal = app as unknown as AppWithInternals;
 		await app.workspace.openLinkText(destFile.path, '');
-		// 약간 대기하여 파일 활성화 완료 대기
 		await new Promise(resolve => setTimeout(resolve, 100));
-		// Merge 명령 실행
-		appAny.commands.executeCommandById('note-composer:merge-file');
+		appInternal.commands?.executeCommandById('note-composer:merge-file');
 	}
 	
 	return true;

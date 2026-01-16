@@ -52,7 +52,9 @@ const parsePropertyCondition = (raw: string): PropertyCondition => {
 const hasValue = (val: unknown): boolean => {
 	if (val === undefined || val === null) return false;
 	if (typeof val === 'object') return true;
-	return String(val).trim() !== '';
+	if (typeof val === 'string') return val.trim() !== '';
+	if (typeof val === 'number' || typeof val === 'boolean') return true;
+	return true;
 };
 
 interface MomentLike {
@@ -131,12 +133,13 @@ const evaluateCondition = (cond: RuleCondition, ctx: RuleContext): MatchResult =
 		case 'property': {
 			const parsed = parsePropertyCondition(cond.value || '');
 			if (!parsed.key) return { matched: false };
-			const propVal = parseFrontMatterEntry(fileCache?.frontmatter, parsed.key);
+			const propVal: unknown = parseFrontMatterEntry(fileCache?.frontmatter, parsed.key);
 			if (!hasValue(propVal)) return { matched: false };
 			if (!parsed.requireValue) return { matched: true };
 			if (!parsed.regex) return { matched: false };
 			try {
-				return { matched: parsed.regex.test(String(propVal)) };
+				const propStr = typeof propVal === 'string' ? propVal : String(propVal as string | number | boolean);
+				return { matched: parsed.regex.test(propStr) };
 			} catch {
 				return { matched: false };
 			}
@@ -154,7 +157,7 @@ const evaluateCondition = (cond: RuleCondition, ctx: RuleContext): MatchResult =
 
 			const key = (cond.value || '').trim();
 			if (!key) return { matched: false };
-			const val = parseFrontMatterEntry(fileCache?.frontmatter, key);
+			const val: unknown = parseFrontMatterEntry(fileCache?.frontmatter, key);
 			if (!hasValue(val)) return { matched: false };
 			const m = coerceToMoment(val);
 			return { matched: !!m && m.isValid() };

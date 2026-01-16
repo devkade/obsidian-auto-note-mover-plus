@@ -20,8 +20,8 @@ export const processFolderPath = (
 
 	// Capture group substitution ($1, $2, etc.)
 	if (hasCaptureTokens && captureGroups && captureGroups.length > 0) {
-		folderPath = folderPath.replace(captureTokenPattern, (_, i) => {
-			const idx = parseInt(i) - 1; // Convert 1-indexed to 0-indexed
+		folderPath = folderPath.replace(captureTokenPattern, (_, i: string) => {
+			const idx = parseInt(i, 10) - 1;
 			return captureGroups[idx] || '';
 		});
 	}
@@ -78,9 +78,14 @@ export const processFolderPath = (
 	}
 
 	if (!momentDate.isValid()) {
-		const dateValueStr = typeof dateValue === 'object' && dateValue !== null
-			? JSON.stringify(dateValue)
-			: String(dateValue ?? '');
+		let dateValueStr: string;
+		if (typeof dateValue === 'object' && dateValue !== null) {
+			dateValueStr = JSON.stringify(dateValue);
+		} else if (dateValue === undefined || dateValue === null) {
+			dateValueStr = '';
+		} else {
+			dateValueStr = String(dateValue as string | number | boolean);
+		}
 		console.warn(
 			`[Auto Note Mover] Invalid date value "${dateValueStr}" for ${
 				dateSource === 'metadata' ? metadataField : `property "${frontmatterKey}"`

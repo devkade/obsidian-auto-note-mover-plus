@@ -1,27 +1,34 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, type Mock } from 'vitest';
+
+interface MockPlugin {
+	enabled: boolean;
+}
+
+interface MockApp {
+	internalPlugins: {
+		getPluginById: Mock<(id: string) => MockPlugin | undefined>;
+	};
+}
 
 describe('Duplicate file handling', () => {
 	describe('isNoteComposerEnabled', () => {
 		it('should return false when note-composer plugin is not enabled', () => {
-			// Mock app with internalPlugins that returns undefined
-			const mockApp = {
+			const mockApp: MockApp = {
 				internalPlugins: {
-					getPluginById: vi.fn().mockReturnValue(undefined),
+					getPluginById: vi.fn<(id: string) => MockPlugin | undefined>().mockReturnValue(undefined),
 				},
 			};
 
-			// The function checks if plugin exists and is enabled
 			const plugin = mockApp.internalPlugins.getPluginById('note-composer');
 			const isEnabled = plugin && plugin.enabled;
 
-			// When plugin is undefined, isEnabled should be falsy (undefined or false)
 			expect(isEnabled).toBeFalsy();
 		});
 
 		it('should return false when note-composer plugin is disabled', () => {
-			const mockApp = {
+			const mockApp: MockApp = {
 				internalPlugins: {
-					getPluginById: vi.fn().mockReturnValue({ enabled: false }),
+					getPluginById: vi.fn<(id: string) => MockPlugin | undefined>().mockReturnValue({ enabled: false }),
 				},
 			};
 
@@ -32,9 +39,9 @@ describe('Duplicate file handling', () => {
 		});
 
 		it('should return true when note-composer plugin is enabled', () => {
-			const mockApp = {
+			const mockApp: MockApp = {
 				internalPlugins: {
-					getPluginById: vi.fn().mockReturnValue({ enabled: true }),
+					getPluginById: vi.fn<(id: string) => MockPlugin | undefined>().mockReturnValue({ enabled: true }),
 				},
 			};
 

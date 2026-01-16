@@ -156,7 +156,7 @@ export default class AutoNoteMover extends Plugin {
 
 		const moveNoteCommand = (view: MarkdownView) => {
 			if (isFmDisable(this.app.metadataCache.getFileCache(view.file))) {
-				new Notice('Auto Note Mover is disabled in the frontmatter.');
+				new Notice('Auto note mover is disabled in the frontmatter.');
 				return;
 			}
 			void fileCheck(view.file, undefined, 'cmd');
@@ -206,11 +206,11 @@ export default class AutoNoteMover extends Plugin {
 				if (this.settings.trigger_auto_manual === 'Automatic') {
 					this.settings.trigger_auto_manual = 'Manual';
 					void this.saveData(this.settings);
-					new Notice('[Auto Note Mover]\nTrigger is manual.');
+					new Notice('Auto note mover: trigger is manual.');
 				} else if (this.settings.trigger_auto_manual === 'Manual') {
 					this.settings.trigger_auto_manual = 'Automatic';
 					void this.saveData(this.settings);
-					new Notice('[Auto Note Mover]\nTrigger is automatic.');
+					new Notice('Auto note mover: trigger is automatic.');
 				}
 				setIndicator();
 			},
@@ -222,9 +222,9 @@ export default class AutoNoteMover extends Plugin {
 	onunload() {}
 
 	async loadSettings(): Promise<void> {
-		const loaded = await this.loadData();
-		const merged = Object.assign({}, DEFAULT_SETTINGS, loaded);
-			if (merged.folder_tag_pattern) {
+		const loaded = (await this.loadData()) as Partial<AutoNoteMoverSettings> | null;
+		const merged: AutoNoteMoverSettings = Object.assign({}, DEFAULT_SETTINGS, loaded);
+		if (merged.folder_tag_pattern) {
 			merged.folder_tag_pattern = merged.folder_tag_pattern.map((rule: FolderTagRule) => {
 				// Already in new shape
 				if (rule.conditions) {

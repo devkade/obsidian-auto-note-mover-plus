@@ -41,10 +41,10 @@ Auto Note Mover 플러그인에 5개 핵심 기능 추가: 일괄 이동, 소스
 5. 폴더 경로에서 `$1`, `$2` 캡처 그룹 치환
 
 ### Definition of Done
-- [ ] `npm run build` → exit code 0, `main.js` 파일 생성됨
-- [ ] `npx vitest run` → exit code 0, 모든 테스트 통과
-- [ ] 기존 설정 파일(새 필드 없음) 로드 테스트: `loadSettings()` 호출 시 오류 없음 (테스트에 포함)
-- [ ] 각 기능별 Manual Verification Steps 완료 (각 Task에 명시됨)
+- [x] `npm run build` → exit code 0, `main.js` 파일 생성됨
+- [x] `npx vitest run` → exit code 0, 모든 테스트 통과
+- [x] 기존 설정 파일(새 필드 없음) 로드 테스트: `loadSettings()` 호출 시 오류 없음 (테스트에 포함)
+- [x] 각 기능별 Manual Verification Steps 완료 (각 Task에 명시됨)
 
 ### Must Have
 - 기존 설정 형식 호환 (새 필드는 optional)
@@ -202,10 +202,10 @@ assert.deepStrictEqual()  →  expect(a).toEqual(b)
 - `fileCheck()`: 단일 파일 처리 로직 재사용
 
 **Acceptance Criteria**:
-- [ ] `main.ts`에 `id: 'Move-all-notes'` 명령어 등록 코드 존재
-- [ ] `fileCheck()` 함수 시그니처가 `boolean` 반환으로 변경됨
-- [ ] 테스트: `moveAllNotes.test.ts`에서 이동 카운트 검증 통과
-- [ ] 수동 검증: Command Palette > "Move all notes" 실행 → Notice에 이동 수 표시
+- [x] `main.ts`에 `id: 'Move-all-notes'` 명령어 등록 코드 존재
+- [x] `fileCheck()` 함수 시그니처가 `boolean` 반환으로 변경됨
+- [x] 테스트: `moveAllNotes.test.ts`에서 이동 카운트 검증 통과
+- [x] 수동 검증: Command Palette > "Move all notes" 실행 → Notice에 이동 수 표시
 
 **Manual Verification Steps**:
 ```
@@ -309,9 +309,9 @@ new ButtonComponent(body).setButtonText('+ Add source folder').onClick(async () 
 - 제외 폴더 체크: 소스 폴더 체크 로직 유사 구현
 
 **Acceptance Criteria**:
-- [ ] `settings/settings.ts`에 `sourceFolders?: string[]`, `sourceIncludeSubfolders?: boolean` 타입 정의 존재
-- [ ] 테스트: `sourceFolders.test.ts` 4개 케이스 모두 통과 (exit code 0)
-- [ ] 기존 설정 파일(sourceFolders 없음) 로드 시 `loadSettings()` 오류 없음
+- [x] `settings/settings.ts`에 `sourceFolders?: string[]`, `sourceIncludeSubfolders?: boolean` 타입 정의 존재
+- [x] 테스트: `sourceFolders.test.ts` 4개 케이스 모두 통과 (exit code 0)
+- [x] 기존 설정 파일(sourceFolders 없음) 로드 시 `loadSettings()` 오류 없음
 
 **Manual Verification Steps**:
 ```
@@ -394,9 +394,9 @@ describe('Source folder restriction', () => {
 - `fileMove`: Notice 조건부 호출로 변경
 
 **Acceptance Criteria**:
-- [ ] `settings/settings.ts`에 `hide_notifications?: boolean` 타입 정의 존재
-- [ ] `utils/Utils.ts`의 `fileMove()`에서 `settings.hide_notifications` 체크 로직 존재
-- [ ] 테스트: `hideNotifications.test.ts` 3개 케이스 모두 통과
+- [x] `settings/settings.ts`에 `hide_notifications?: boolean` 타입 정의 존재
+- [x] `utils/Utils.ts`의 `fileMove()`에서 `settings.hide_notifications` 체크 로직 존재
+- [x] 테스트: `hideNotifications.test.ts` 3개 케이스 모두 통과
 
 **Manual Verification Steps**:
 ```
@@ -473,9 +473,9 @@ describe('Hide notifications', () => {
 - **Fallback**: Note Composer 비활성화 시 Skip + Notice 경고
 
 **Acceptance Criteria**:
-- [ ] `settings/settings.ts`에 `duplicate_file_action?: 'skip' | 'merge'` 타입 정의 존재
-- [ ] `utils/Utils.ts`에 Note Composer 활성화 체크 함수 존재
-- [ ] 테스트: `duplicateFileAction.test.ts` unit 테스트 통과
+- [x] `settings/settings.ts`에 `duplicate_file_action?: 'skip' | 'merge'` 타입 정의 존재
+- [x] `utils/Utils.ts`에 Note Composer 활성화 체크 함수 존재
+- [x] 테스트: `duplicateFileAction.test.ts` unit 테스트 통과
 
 **Unit Testable Parts** (자동화 가능):
 - `isNoteComposerEnabled(app)` 함수 - mock app으로 테스트
@@ -611,10 +611,10 @@ if (match) {
 ```
 
 **Acceptance Criteria**:
-- [ ] `utils/ruleMatching.ts`에 `MatchResult` 인터페이스 정의됨
-- [ ] `isRuleMatched()` 반환 타입이 `MatchResult`로 변경됨
-- [ ] `tests/ruleMatching.test.ts`에서 모든 assertion이 `.matched` 접근으로 수정됨
-- [ ] 테스트: `captureGroups.test.ts` 5개 케이스 모두 통과
+- [x] `utils/ruleMatching.ts`에 `MatchResult` 인터페이스 정의됨
+- [x] `isRuleMatched()` 반환 타입이 `MatchResult`로 변경됨
+- [x] `tests/ruleMatching.test.ts`에서 모든 assertion이 `.matched` 접근으로 수정됨
+- [x] 테스트: `captureGroups.test.ts` 5개 케이스 모두 통과
 
 **Files to Modify**:
 - `utils/ruleMatching.ts` - 반환 타입 변경, captureGroups 추출
@@ -668,10 +668,10 @@ describe('Regex capture groups in folder path', () => {
 - `main.ts:163-206` - `loadSettings()` 마이그레이션 로직
 
 **Acceptance Criteria**:
-- [ ] `npm run build` 성공, `main.js` 생성됨
-- [ ] `npx vitest run` 모든 테스트 통과 (0 failures)
-- [ ] 기존 설정 파일(새 필드 없음)로 플러그인 로드 시 오류 없음
-- [ ] 새 설정 필드가 undefined일 때 기본값으로 동작함
+- [x] `npm run build` 성공, `main.js` 생성됨
+- [x] `npx vitest run` 모든 테스트 통과 (0 failures)
+- [x] 기존 설정 파일(새 필드 없음)로 플러그인 로드 시 오류 없음
+- [x] 새 설정 필드가 undefined일 때 기본값으로 동작함
 
 **Concrete Verification Steps**:
 ```bash
@@ -729,7 +729,7 @@ npx vitest run         # Expected: 모든 테스트 통과
 ```
 
 ### Final Checklist
-- [ ] 5개 기능 모두 구현됨
-- [ ] `npx vitest run` → 모든 테스트 통과
-- [ ] 기존 설정 파일 로드 시 오류 없음
-- [ ] `npm run build` → main.js 생성됨
+- [x] 5개 기능 모두 구현됨
+- [x] `npx vitest run` → 모든 테스트 통과
+- [x] 기존 설정 파일 로드 시 오류 없음
+- [x] `npm run build` → main.js 생성됨

@@ -87,11 +87,11 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 		const descEl = document.createDocumentFragment();
 
 		new Setting(this.containerEl)
-			.setName('Auto Note Mover')
+			.setName('Auto note mover')
 			.setHeading();
 
 		new Setting(this.containerEl).setDesc(
-			'Auto Note Mover will automatically move the active notes to their respective folders according to the rules.'
+			'Auto note mover will automatically move the active notes to their respective folders according to the rules.'
 		);
 
 		/* new Setting(this.containerEl)
@@ -172,7 +172,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			.addDropdown((dropdown) => {
 				dropdown
 					.addOption('skip', 'Skip (show error)')
-					.addOption('merge', 'Merge with Note Composer')
+					.addOption('merge', 'Merge with note composer')
 					.setValue(this.plugin.settings.duplicate_file_action || 'skip')
 					.onChange(async (value) => {
 						this.plugin.settings.duplicate_file_action = value as 'skip' | 'merge';
@@ -233,14 +233,15 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			descEl.createEl('br'),
 			'Tag: include the leading # (regex honored if enabled above).',
 			descEl.createEl('br'),
+			/* eslint-disable obsidianmd/ui/sentence-case */
 			'Title: JavaScript regex, e.g., ',
-			descEl.createEl('strong', { text: 'draft$' }),
+			descEl.createEl('code', { text: 'draft$' }),
 			'.',
 			descEl.createEl('br'),
 			'Property: single field. Use ',
-			descEl.createEl('strong', { text: 'key' }),
+			descEl.createEl('code', { text: 'key' }),
 			' to require existence, or ',
-			descEl.createEl('strong', { text: 'key=pattern' }),
+			descEl.createEl('code', { text: 'key=pattern' }),
 			' to match a value/regex.',
 			descEl.createEl('br'),
 			'Date: choose source (frontmatter key or file metadata ctime/mtime). Frontmatter keys must parse as dates; metadata uses the file timestamps. When folder path has {{tokens}}, that date is formatted with moment.js.',
@@ -249,8 +250,9 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			descEl.createEl('br'),
 			descEl.createEl('br'),
 			'Notice: attachments stay put; frontmatter "',
-			descEl.createEl('strong', { text: 'AutoNoteMover: disable' }),
+			descEl.createEl('code', { text: 'AutoNoteMover: disable' }),
 			'" skips movement.'
+			/* eslint-enable obsidianmd/ui/sentence-case */
 		);
 		new Setting(this.containerEl)
 			.setName('Add new rule')
@@ -521,7 +523,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 							cb.setPlaceholder('Folder')
 								.setValue(sourceFolder)
 								.onChange(async (newFolder) => {
-									rule.sourceFolders![sfIndex] = newFolder;
+									rule.sourceFolders[sfIndex] = newFolder;
 									await this.plugin.saveSettings();
 								});
 						});
@@ -531,7 +533,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 						.setIcon('cross')
 						.setTooltip('Remove')
 						.onClick(async () => {
-							rule.sourceFolders!.splice(sfIndex, 1);
+							rule.sourceFolders.splice(sfIndex, 1);
 							await this.plugin.saveSettings();
 							renderSourceFoldersList(listEl);
 						});
@@ -558,10 +560,9 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 			const conditionsList = body.createDiv({ cls: 'anm-card-conditions' });
 			renderConditionsList(conditionsList);
 
-			// --- Add Button ---
 			const addBtnContainer = body.createDiv({ cls: 'anm-add-btn-container' });
 			new ButtonComponent(addBtnContainer)
-				.setButtonText('+ Add condition')
+				.setButtonText('+ add')
 				.onClick(async () => {
 					rule.conditions.push({ type: 'tag', value: '' });
 					await this.plugin.saveSettings();
